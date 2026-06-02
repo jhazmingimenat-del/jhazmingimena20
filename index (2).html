@@ -9,14 +9,15 @@
         :root {
             --primary: #4f46e5;
             --primary-hover: #4338ca;
-            --bg: #f9fafb;
-            --card-bg: #ffffff;
-            --text: #1f2937;
+            --background: #f9fafb;
+            --surface: #ffffff;
+            --text: #111827;
+            --text-muted: #6b7280;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
+            background-color: var(--background);
             color: var(--text);
             margin: 0;
             padding: 20px;
@@ -28,30 +29,32 @@
         .container {
             max-width: 500px;
             width: 100%;
-            background: var(--card-bg);
+            background: var(--surface);
             padding: 20px;
             border-radius: 16px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             box-sizing: border-box;
         }
 
-        h1, h2 {
+        h1 {
+            font-size: 1.5rem;
             text-align: center;
             margin-top: 0;
+            color: var(--primary);
         }
 
         .btn {
             display: block;
             width: 100%;
+            padding: 12px;
             background-color: var(--primary);
             color: white;
             border: none;
-            padding: 14px;
-            font-size: 16px;
-            font-weight: bold;
             border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background-color 0.2s;
             margin-bottom: 15px;
         }
 
@@ -59,182 +62,233 @@
             background-color: var(--primary-hover);
         }
 
-        .btn-stop {
+        .btn-danger {
             background-color: #ef4444;
         }
-        .btn-stop:hover {
+        .btn-danger:hover {
             background-color: #dc2626;
         }
 
         #reader {
             width: 100%;
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
             border: none !important; /* Quita el borde por defecto de la librería */
+            margin-bottom: 15px;
         }
 
-        .history-section {
+        .historial-section {
             margin-top: 25px;
         }
 
-        .history-list {
-            list-style: none;
-            padding: 0;
+        .historial-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f3f4f6;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        .historial-header h2 {
+            font-size: 1.1rem;
             margin: 0;
         }
 
-        .history-item {
+        .clear-btn {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        li {
             background: #f3f4f6;
-            padding: 12px;
+            padding: 10px 12px;
             border-radius: 8px;
-            margin-bottom: 10px;
-            font-size: 14px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
             word-break: break-all;
         }
 
-        .time-stamp {
+        .fecha {
             display: block;
-            font-size: 11px;
-            color: #6b7280;
+            font-size: 0.75rem;
+            color: var(--text-muted);
             margin-top: 4px;
-            font-weight: bold;
         }
 
         .empty-state {
             text-align: center;
-            color: #9ca3af;
-            font-style: italic;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            padding: 20px 0;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Escáner QR</h1>
-    
-    <button id="btn-scan" class="btn">Iniciar Cámara</button>
-    <button id="btn-stop" class="btn btn-stop" style="display: none;">Detener Cámara</button>
+    <div class="container">
+        <h1>Escáner de Códigos QR</h1>
+        
+        <button id="btn-toggle" class="btn">Iniciar Cámara</button>
+        
+        <div id="reader" style="display: none;"></div>
 
-    <div id="reader"></div>
-
-    <div class="history-section">
-        <h2>Historial de Registros</h2>
-        <ul id="history-list" class="history-list">
-            </ul>
+        <div class="historial-section">
+            <div class="historial-header">
+                <h2>Códigos Registrados</h2>
+                <button id="btn-clear" class="clear-btn" style="display: none;">Limpiar todo</button>
+            </div>
+            <ul id="lista-qr">
+                </ul>
+            <div id="empty-msg" class="empty-state">No hay registros guardados.</div>
+        </div>
     </div>
-</div>
 
-<script>
-    const btnScan = document.getElementById('btn-scan');
-    const btnStop = document.getElementById('btn-stop');
-    const historyList = document.getElementById('history-list');
-    
-    // Instancia del escáner apuntando al div #reader
-    const html5QrcodeScanner = new Html5Qrcode("reader");
+    <script>
+        // Variables globales
+        let html5QrCode;
+        let isScanning = false;
+        
+        const btnToggle = document.getElementById('btn-toggle');
+        const btnClear = document.getElementById('btn-clear');
+        const readerDiv = document.getElementById('reader');
+        const listaQr = document.getElementById('lista-qr');
+        const emptyMsg = document.getElementById('empty-msg');
 
-    // Cargar historial inicial al abrir la página
-    document.addEventListener('DOMContentLoaded', displayHistory);
-
-    // Evento para iniciar la cámara
-    btnScan.addEventListener('click', () => {
-        btnScan.style.display = 'none';
-        btnStop.style.display = 'block';
-
-        // Configuración para forzar la cámara trasera en móviles y definir tamaño del escáner
+        // Configuración del escáner
         const config = { 
             fps: 10, 
-            qrbox: { width: 250, height: 250 } 
+            qrbox: function(viewfinderWidth, viewfinderHeight) {
+                // Cuadro de escaneo adaptativo
+                const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                const edgeSize = Math.floor(minEdge * 0.7);
+                return { width: edgeSize, height: edgeSize };
+            }
         };
 
-        html5QrcodeScanner.start(
-            { facingMode: "environment" }, // Prioriza la cámara trasera
-            config,
-            onScanSuccess,
-            onScanFailure
-        ).catch(err => {
-            alert("Error al acceder a la cámara: " + err);
-            resetButtons();
+        // Cargar el historial al iniciar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            html5QrCode = new Html5Qrcode("reader");
+            renderHistorial();
         });
-    });
 
-    // Evento para detener la cámara manualmente
-    btnStop.addEventListener('click', stopCamera);
-
-    function stopCamera() {
-        html5QrcodeScanner.stop().then(() => {
-            resetButtons();
-        }).catch(err => {
-            console.error("Error al detener la cámara: ", err);
+        // Alternar entre encender y apagar la cámara
+        btnToggle.addEventListener('click', () => {
+            if (!isScanning) {
+                startScanner();
+            } else {
+                stopScanner();
+            }
         });
-    }
 
-    function resetButtons() {
-        btnScan.style.display = 'block';
-        btnStop.style.display = 'none';
-    }
+        // Limpiar el historial de LocalStorage
+        btnClear.addEventListener('click', () => {
+            if (confirm('¿Seguro que deseas borrar todo el historial?')) {
+                localStorage.removeItem('qr_history');
+                renderHistorial();
+            }
+        });
 
-    // Qué hacer cuando se reconoce un QR de manera exitosa
-    function onScanSuccess(decodedText, decodedResult) {
-        // Detener la cámara tras una lectura exitosa (opcional, pero recomendado)
-        stopCamera();
+        // Función para encender la cámara
+        function startScanner() {
+            readerDiv.style.display = 'block';
+            btnToggle.textContent = 'Apagar Cámara';
+            btnToggle.classList.add('btn-danger');
+            isScanning = true;
 
-        // Obtener fecha y hora actual formateada
-        const now = new Date();
-        const dateTimeStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
-
-        // Guardar en el almacenamiento local (LocalStorage)
-        saveToLocalStorage(decodedText, dateTimeStr);
-
-        // Actualizar la interfaz visual
-        displayHistory();
-
-        // Alerta visual de éxito
-        alert(`¡Código detectado con éxito!\nContenido: ${decodedText}`);
-    }
-
-    // Manejo de errores de escaneo continuos (la librería busca QR constantemente, suele ignorarse)
-    function onScanFailure(error) {
-        // console.warn(`Error de escaneo: ${error}`);
-    }
-
-    // Guardar datos en LocalStorage
-    function saveToLocalStorage(text, datetime) {
-        let history = JSON.parse(localStorage.getItem('qr_history')) || [];
-        // Insertamos al principio para que el más nuevo salga arriba
-        history.unshift({ text: text, datetime: datetime });
-        localStorage.setItem('qr_history', JSON.stringify(history));
-    }
-
-    // Mostrar el historial en pantalla
-    function displayHistory() {
-        historyList.innerHTML = '';
-        let history = JSON.parse(localStorage.getItem('qr_history')) || [];
-
-        if (history.length === 0) {
-            historyList.innerHTML = '<li class="empty-state">No hay códigos registrados aún.</li>';
-            return;
+            // 'environment' le indica que prefiera la cámara trasera en móviles
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                config, 
+                onScanSuccess
+            ).catch(err => {
+                console.error("Error al iniciar la cámara:", err);
+                alert("No se pudo acceder a la cámara. Asegúrate de dar los permisos necesarios.");
+                stopScanner();
+            });
         }
 
-        history.forEach(item => {
-            const li = document.createElement('li');
-            li.className = 'history-item';
+        // Función para apagar la cámara
+        function stopScanner() {
+            if (isScanning) {
+                html5QrCode.stop().then(() => {
+                    readerDiv.style.display = 'none';
+                    btnToggle.textContent = 'Iniciar Cámara';
+                    btnToggle.classList.remove('btn-danger');
+                    isScanning = false;
+                }).catch(err => console.error("Error al detener la cámara:", err));
+            }
+        }
+
+        // Qué pasa cuando encuentra un QR
+        function onScanSuccess(decodedText, decodedResult) {
+            // Detener el escáner inmediatamente para evitar lecturas duplicadas consecutivas
+            stopScanner();
             
-            // Si el texto parece un enlace, lo hacemos clickeable
-            if (item.text.startsWith('http://') || item.text.startsWith('https://')) {
-                li.innerHTML = `<a href="${item.text}" target="_blank" style="color: var(--primary); font-weight: 500;">${item.text}</a>`;
-            } else {
-                li.textContent = item.text;
+            // Vibración feedback (si el dispositivo lo soporta)
+            if (navigator.vibrate) navigator.vibrate(100);
+
+            // Guardar en LocalStorage con la fecha y hora actual
+            const nuevoRegistro = {
+                texto: decodedText,
+                fecha: new Date().toLocaleString()
+            };
+
+            let historial = JSON.parse(localStorage.getItem('qr_history')) || [];
+            historial.unshift(nuevoRegistro); // Agrega al inicio para ver el más reciente primero
+            localStorage.setItem('qr_history', JSON.stringify(historial));
+
+            // Actualizar la interfaz
+            renderHistorial();
+            
+            // Breve alerta visual de éxito
+            alert(`¡Código detectado con éxito!\nContenido: ${decodedText}`);
+        }
+
+        // Pintar el historial en pantalla
+        function renderHistorial() {
+            const historial = JSON.parse(localStorage.getItem('qr_history')) || [];
+            listaQr.innerHTML = '';
+
+            if (historial.length === 0) {
+                emptyMsg.style.display = 'block';
+                btnClear.style.display = 'none';
+                return;
             }
 
-            const spanTime = document.createElement('span');
-            spanTime.className = 'time-stamp';
-            spanTime.textContent = `📅 Presenciado el: ${item.datetime}`;
-            
-            li.appendChild(spanTime);
-            historyList.appendChild(li);
-        });
-    }
-</script>
+            emptyMsg.style.display = 'none';
+            btnClear.style.display = 'block';
 
+            historial.forEach(item => {
+                const li = document.createElement('li');
+                
+                // Si el texto es un enlace, hacerlo clickeable
+                if (item.texto.startsWith('http://') || item.texto.startsWith('https://')) {
+                    li.innerHTML = `<a href="${item.texto}" target="_blank" rel="noopener noreferrer">${item.texto}</a>`;
+                } else {
+                    li.textContent = item.texto;
+                }
+
+                const spanFecha = document.createElement('span');
+                spanFecha.className = 'fecha';
+                spanFecha.textContent = item.fecha;
+                
+                li.appendChild(spanFecha);
+                listaQr.appendChild(li);
+            });
+        }
+    </script>
 </body>
 </html>
