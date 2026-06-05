@@ -1,159 +1,518 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Asistencia QR Estable</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-    <style>
-        /* Contenedor del video de la cámara */
-        #reader {
-            width: 100%;
-            max-width: 360px;
-            background: #1e293b;
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        /* Corregir orientación de la cámara en algunos móviles */
-        #reader video {
-            object-fit: cover !important;
-            border-radius: 12px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Control de Estudiantes</title>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial, sans-serif;
+}
+
+body{
+background:#f5f7fa;
+padding:20px;
+}
+
+h1{
+text-align:center;
+margin-bottom:20px;
+color:#2c3e50;
+}
+
+.dashboard{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:15px;
+margin-bottom:20px;
+}
+
+.card{
+background:white;
+padding:20px;
+border-radius:10px;
+box-shadow:0 2px 10px rgba(0,0,0,.1);
+text-align:center;
+}
+
+.card h2{
+font-size:30px;
+color:#3498db;
+}
+
+.botones{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+margin-bottom:15px;
+}
+
+button{
+padding:10px 15px;
+border:none;
+border-radius:5px;
+cursor:pointer;
+color:white;
+}
+
+.agregar{background:#27ae60;}
+.exportar{background:#8e44ad;}
+
+input{
+padding:10px;
+width:100%;
+max-width:300px;
+margin-bottom:15px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+background:white;
+box-shadow:0 2px 10px rgba(0,0,0,.1);
+}
+
+th{
+background:#3498db;
+color:white;
+padding:10px;
+}
+
+td{
+padding:10px;
+text-align:center;
+border-bottom:1px solid #ddd;
+}
+
+.editar{
+background:#f39c12;
+}
+
+.eliminar{
+background:#e74c3c;
+}
+
+.asistencia{
+background:#16a085;
+}
+
+@media(max-width:768px){
+table{
+font-size:12px;
+}
+button{
+padding:8px;
+font-size:12px;
+}
+}
+</style>
 </head>
-<body class="bg-slate-50 font-sans p-4 flex flex-col items-center justify-center min-h-screen">
+<body>
 
-    <div class="w-full max-w-md bg-white p-6 rounded-2xl shadow-xl space-y-6 text-center">
-        <h1 class="text-2xl font-bold text-slate-800">Control de Asistencia QR</h1>
-        <p class="text-sm text-slate-500">Presiona el botón para escanear el DNI del trabajador</p>
+<h1>Control de Estudiantes</h1>
 
-        <div class="flex justify-center">
-            <div id="reader"></div>
-        </div>
+<div class="dashboard">
+<div class="card">
+<h3>Total Estudiantes</h3>
+<h2 id="totalEstudiantes">0</h2>
+</div>
 
-        <div class="grid grid-cols-2 gap-3">
-            <button onclick="encenderCamara()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl shadow transition active:scale-95">
-                📷 Activar Cámara
-            </button>
-            <button onclick="apagarCamara()" class="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-4 rounded-xl shadow transition active:scale-95">
-                🛑 Apagar
-            </button>
-        </div>
+<div class="card">
+<h3>Asistencias</h3>
+<h2 id="totalAsistencias">0</h2>
+</div>
+</div>
 
-        <div class="text-left border-t border-slate-100 pt-4">
-            <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-2">Últimos Registros</h3>
-            <ul id="log-asistencias" class="text-sm text-slate-600 space-y-1 list-disc list-inside">
-                <li class="text-slate-400 list-none">Ningún escaneo en esta sesión aún...</li>
-            </ul>
-        </div>
-    </div>
+<div class="botones">
+<button class="agregar" onclick="nuevoEstudiante()">➕ Nuevo Estudiante</button>
+<button class="exportar" onclick="exportarDatos()">💾 Exportar Backup</button>
+</div>
 
-    <script>
-        // Base de datos simulada (20 registros en memoria para validar)
-        const trabajadores = [
-            {dni:"45871293", nombre:"Carlos Mendoza"}, {dni:"71239485", nombre:"Ana Quispe"},
-            {dni:"10485762", nombre:"Jorge Flores"}, {dni:"48921357", nombre:"María Gonzales"},
-            {dni:"73418925", nombre:"Diego Ramírez"}, {dni:"09845127", nombre:"Claudia Diaz"},
-            {dni:"42163859", nombre:"Juan Espinoza"}, {dni:"75192843", nombre:"Andrea Torres"},
-            {dni:"16734928", nombre:"Luis Rojas"}, {dni:"44321987", nombre:"Diana Castillo"},
-            {dni:"70654321", nombre:"Ricardo Villanueva"}, {dni:"25814736", nombre:"Gabriela Ramos"},
-            {dni:"47392158", nombre:"Alejandro Salazar"}, {dni:"72159483", nombre:"Natalia Benitez"},
-            {dni:"08426179", nombre:"Manuel Cruz"}, {dni:"46912385", nombre:"Valeria Campos"},
-            {dni:"74381925", nombre:"Christian Medina"}, {dni:"15934826", nombre:"Paola Silva"},
-            {dni:"41273958", nombre:"Roberto Alva"}, {dni:"76541239", nombre:"Camila Paredes"}
-        ];
+<input
+type="text"
+id="buscar"
+placeholder="Buscar estudiante..."
+onkeyup="filtrar()">
 
-        let html5Qrcode = null;
+<table>
+<thead>
+<tr>
+<th>DNI</th>
+<th>Nombres</th>
+<th>Apellidos</th>
+<th>Género</th>
+<th>Edad</th>
+<th>Teléfono</th>
+<th>Acciones</th>
+</tr>
+</thead>
+<tbody id="tabla"></tbody>
+</table>
 
-        function encenderCamara() {
-            // Instanciar el lector en el div #reader si no existe
-            if (!html5Qrcode) {
-                html5Qrcode = new Html5Qrcode("reader");
-            }
+<script>
 
-            // Configuración estricta para móviles
-            const config = { 
-                fps: 15,                  // Velocidad de escaneo por segundo
-                qrbox: { width: 230, height: 230 } // Cuadro de enfoque
-            };
+let estudiantes = [
 
-            // Intentar arrancar usando la cámara trasera ("environment")
-            html5Qrcode.start(
-                { facingMode: "environment" }, 
-                config, 
-                onScanSuccess, 
-                onScanFailure
-            ).catch(err => {
-                // Si falla (por ejemplo en PC sin cámara trasera), intenta con cualquier cámara disponible
-                console.warn("Fallo cámara trasera, intentando cámara por defecto...", err);
-                html5Qrcode.start({ facingMode: "user" }, config, onScanSuccess, onScanFailure)
-                .catch(errorFinal => {
-                    Swal.fire({
-                        title: 'Error de Cámara',
-                        text: 'No se pudo acceder a la cámara. Asegúrate de estar usando HTTPS (conexión segura) y de haber aceptado los permisos en tu móvil.',
-                        icon: 'error'
-                    });
-                });
-            });
-        }
+{dni:"74851236",nombre:"Andrea Lucía",apellido:"Pérez Gómez",genero:"Femenino",edad:19,telefono:"987654321"},
+{dni:"73582419",nombre:"Carlos Alberto",apellido:"Rodríguez Díaz",genero:"Masculino",edad:21,telefono:"965874123"},
+{dni:"71245896",nombre:"Valeria Sofía",apellido:"Torres Rojas",genero:"Femenino",edad:18,telefono:"954321876"},
+{dni:"76985214",nombre:"Diego Alejandro",apellido:"Vargas Castillo",genero:"Masculino",edad:22,telefono:"978456123"},
+{dni:"74123698",nombre:"María Fernanda",apellido:"Huamán López",genero:"Femenino",edad:20,telefono:"981234567"},
+{dni:"75632147",nombre:"José Miguel",apellido:"Flores Sánchez",genero:"Masculino",edad:23,telefono:"968741258"},
+{dni:"72894561",nombre:"Camila Alejandra",apellido:"Mendoza Ruiz",genero:"Femenino",edad:19,telefono:"957486321"},
+{dni:"73418725",nombre:"Luis Fernando",apellido:"Castro Vega",genero:"Masculino",edad:21,telefono:"972345681"},
+{dni:"76258149",nombre:"Daniela Isabel",apellido:"Ramírez Paredes",genero:"Femenino",edad:18,telefono:"983216547"},
+{dni:"74963258",nombre:"Juan Esteban",apellido:"Gutiérrez Silva",genero:"Masculino",edad:22,telefono:"964785231"},
+{dni:"73125487",nombre:"Paola Milagros",apellido:"Salazar Quispe",genero:"Femenino",edad:20,telefono:"976512348"},
+{dni:"75896321",nombre:"Kevin André",apellido:"Navarro León",genero:"Masculino",edad:19,telefono:"952478136"},
+{dni:"74685213",nombre:"Fiorella Andrea",apellido:"Ramos Ortiz",genero:"Femenino",edad:21,telefono:"985632147"},
+{dni:"72369854",nombre:"Renato Javier",apellido:"Pacheco Torres",genero:"Masculino",edad:24,telefono:"971258364"},
+{dni:"75412369",nombre:"Karla Vanessa",apellido:"Cárdenas Flores",genero:"Femenino",edad:18,telefono:"959874123"},
+{dni:"73965412",nombre:"Sergio Daniel",apellido:"Aguilar Mendoza",genero:"Masculino",edad:20,telefono:"967123854"},
+{dni:"76521498",nombre:"Nicole Alessandra",apellido:"Chávez Ríos",genero:"Femenino",edad:22,telefono:"984751236"},
+{dni:"74219863",nombre:"Ángel Sebastián",apellido:"Herrera Salas",genero:"Masculino",edad:19,telefono:"973684125"},
+{dni:"75123684",nombre:"Lucía Belén",apellido:"Espinoza Cruz",genero:"Femenino",edad:21,telefono:"956321478"},
+{dni:"73698521",nombre:"Martín Alonso",apellido:"Valdivia Romero",genero:"Masculino",edad:23,telefono:"969852147"}
 
-        function onScanSuccess(decodedText, decodedResult) {
-            // Al encontrar un QR con éxito, pausamos o apagamos para que no parpadee repetidamente
-            apagarCamara();
+];
 
-            // Buscar si el DNI escaneado existe en la lista
-            const dniLimpio = decodedText.trim();
-            const empleado = trabajadores.find(t => t.dni === dniLimpio);
+let asistencias=[];
 
-            if (!empleado) {
-                Swal.fire({
-                    title: 'Código No Reconocido',
-                    text: `El DNI [${dniLimpio}] no pertenece a ningún trabajador registrado.`,
-                    icon: 'warning'
-                }).then(() => encenderCamara()); // Reiniciar cámara al cerrar alerta
-                return;
-            }
+function renderTabla(lista=estudiantes){
 
-            // Si el empleado existe, preguntar Tipo de Marcaje con SweetAlert2
-            Swal.fire({
-                title: `Hola, ${empleado.nombre}`,
-                text: `¿Qué tipo de registro deseas realizar para el DNI ${empleado.dni}?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: '✅ Entrada',
-                cancelButtonText: '❌ Salida',
-                confirmButtonColor: '#10b981',
-                cancelButtonColor: '#f43f5e',
-            }).then((result) => {
-                const tipo = result.isConfirmed ? "Entrada" : "Salida";
-                const horaActual = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-                
-                // Agregar al historial de la pantalla
-                const log = document.getElementById('log-asistencias');
-                if(log.innerText.includes("Ningún escaneo")) log.innerHTML = ""; // Limpiar texto inicial
-                
-                log.innerHTML = `<li class="font-medium text-slate-700"><b>${horaActual}</b> - ${empleado.nombre} (${tipo})</li>` + log.innerHTML;
+const tabla=document.getElementById("tabla");
 
-                Swal.fire('¡Registrado!', `${tipo} marcada correctamente a las ${horaActual}.`, 'success')
-                    .then(() => encenderCamara()); // Volver a activar la cámara para el siguiente trabajador
-            });
-        }
+tabla.innerHTML="";
 
-        function onScanFailure(error) {
-            // Esta función se ejecuta continuamente buscando códigos en el video. 
-            // La dejamos vacía para no saturar la consola del navegador.
-        }
+lista.forEach((e,i)=>{
 
-        function apagarCamara() {
-            if (html5Qrcode && html5Qrcode.isScanning) {
-                html5Qrcode.stop().then(() => {
-                    document.getElementById('reader').innerHTML = ""; // Limpiar visor
-                    html5Qrcode = null; // Resetear instancia
-                }).catch(err => console.error("Error al detener cámara:", err));
-            }
-        }
-    </script>
+tabla.innerHTML+=`
+<tr>
+<td>${e.dni}</td>
+<td>${e.nombre}</td>
+<td>${e.apellido}</td>
+<td>${e.genero}</td>
+<td>${e.edad}</td>
+<td>${e.telefono}</td>
+<td>
+<button class="editar" onclick="editar(${i})">✏️</button>
+<button class="eliminar" onclick="eliminar(${i})">🗑️</button>
+<button class="asistencia" onclick="registrarAsistencia('${e.dni}')">✔️</button>
+</td>
+</tr>
+`;
+
+});
+
+actualizarDashboard();
+
+}
+
+function actualizarDashboard(){
+
+document.getElementById("totalEstudiantes").textContent=
+estudiantes.length;
+
+document.getElementById("totalAsistencias").textContent=
+asistencias.length;
+
+}
+
+function nuevoEstudiante(){
+
+Swal.fire({
+title:"Nuevo Estudiante",
+html:`
+<input id="dni" class="swal2-input" placeholder="DNI">
+<input id="nombre" class="swal2-input" placeholder="Nombres">
+<input id="apellido" class="swal2-input" placeholder="Apellidos">
+<input id="genero" class="swal2-input" placeholder="Género">
+<input id="edad" class="swal2-input" placeholder="Edad">
+<input id="telefono" class="swal2-input" placeholder="Teléfono">
+`,
+preConfirm:()=>{
+
+estudiantes.push({
+dni:dni.value,
+nombre:nombre.value,
+apellido:apellido.value,
+genero:genero.value,
+edad:edad.value,
+telefono:telefono.value
+});
+
+renderTabla();
+
+}
+});
+
+}
+
+function editar(i){
+
+let e=estudiantes[i];
+
+Swal.fire({
+title:"Editar",
+html:`
+<input id="dni" class="swal2-input" value="${e.dni}">
+<input id="nombre" class="swal2-input" value="${e.nombre}">
+<input id="apellido" class="swal2-input" value="${e.apellido}">
+<input id="genero" class="swal2-input" value="${e.genero}">
+<input id="edad" class="swal2-input" value="${e.edad}">
+<input id="telefono" class="swal2-input" value="${e.telefono}">
+`,
+preConfirm:()=>{
+
+estudiantes[i]={
+dni:dni.value,
+nombre:nombre.value,
+apellido:apellido.value,
+genero:genero.value,
+edad:edad.value,
+telefono:telefono.value
+};
+
+renderTabla();
+
+}
+});
+
+}
+
+function eliminar(i){
+
+Swal.fire({
+title:"¿Eliminar?",
+icon:"warning",
+showCancelButton:true
+}).then(r=>{
+
+if(r.isConfirmed){
+
+estudiantes.splice(i,1);
+
+renderTabla();
+
+}
+
+});
+
+}
+
+function registrarAsistencia(dni){
+
+asistencias.push({
+dni:dni,
+fecha:new Date().toLocaleString()
+});
+
+Swal.fire(
+"Correcto",
+"Asistencia registrada",
+"success"
+);
+
+actualizarDashboard();
+
+}
+
+function exportarDatos(){
+
+const datos={
+estudiantes,
+asistencias
+};
+
+const blob=new Blob(
+[JSON.stringify(datos,null,2)],
+{type:"application/json"}
+);
+
+const a=document.createElement("a");
+
+a.href=URL.createObjectURL(blob);
+
+a.download="backup_estudiantes.json";
+
+a.click();
+
+}
+
+function filtrar(){
+
+let texto=
+document.getElementById("buscar")
+.value.toLowerCase();
+
+let resultado=
+estudiantes.filter(e=>
+
+e.nombre.toLowerCase().includes(texto) ||
+e.apellido.toLowerCase().includes(texto) ||
+e.dni.includes(texto)
+
+);
+
+renderTabla(resultado);
+
+}
+
+renderTabla();
+
+</script>
+
 </body>
 </html>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<link rel="stylesheet"
+href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+function guardarDatos(){
+localStorage.setItem(
+"estudiantes",
+JSON.stringify(estudiantes)
+);
+
+localStorage.setItem(
+"asistencias",
+JSON.stringify(asistencias)
+);
+}
+
+function cargarDatos(){
+
+const e = localStorage.getItem("estudiantes");
+const a = localStorage.getItem("asistencias");
+
+if(e) estudiantes = JSON.parse(e);
+if(a) asistencias = JSON.parse(a);
+
+}
+function iniciarScanner(){
+
+const html5QrCode =
+new Html5Qrcode("reader");
+
+html5QrCode.start(
+{ facingMode: "environment" },
+{
+fps:10,
+qrbox:250
+},
+(decodedText)=>{
+
+registrarAsistencia(decodedText);
+
+html5QrCode.stop();
+
+}
+);
+
+}
+function generarQR(estudiante){
+
+Swal.fire({
+title:"QR del estudiante",
+html:`<div id="qr"></div>`,
+didOpen:()=>{
+
+new QRCode(
+document.getElementById("qr"),
+{
+text: estudiante.dni,
+width:200,
+height:200
+}
+);
+
+}
+});
+
+}
+document.addEventListener(
+'DOMContentLoaded',
+function() {
+
+var calendar =
+new FullCalendar.Calendar(
+document.getElementById('calendar'),
+{
+initialView:'dayGridMonth',
+events:eventosAsistencia
+}
+);
+
+calendar.render();
+
+});
+function importarBackup(event){
+
+const archivo =
+event.target.files[0];
+
+const lector =
+new FileReader();
+
+lector.onload = function(e){
+
+const datos =
+JSON.parse(e.target.result);
+
+estudiantes =
+datos.estudiantes || [];
+
+asistencias =
+datos.asistencias || [];
+
+guardarDatos();
+
+renderTabla();
+
+};
+
+lector.readAsText(archivo);
+
+}
+function generarReporte(){
+
+let reporte =
+asistencias.map(a=>`
+
+DNI: ${a.dni}
+Fecha: ${a.fecha}
+
+`).join("");
+
+Swal.fire({
+title:"Reporte",
+html:`<pre>${reporte}</pre>`
+});
+
+}
+function imprimirCarnet(estudiante){
+
+let ventana =
+window.open("","_blank");
+
+ventana.document.write(`
+<h2>${estudiante.nombre}</h2>
+<p>DNI: ${estudiante.dni}</p>
+<div id="qr"></div>
+`);
+
+ventana.print();
+
+}
