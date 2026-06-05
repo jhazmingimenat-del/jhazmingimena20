@@ -3,61 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestión de Personal y Asistencia QR</title>
+    <title>Sistema Control de Asistencia Móvil QR</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    
+    <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
 </head>
-<body class="bg-gray-100 font-sans text-gray-800">
+<body class="bg-slate-900 text-slate-100 font-sans antialiased min-h-screen">
 
-    <div class="container mx-auto p-4 max-w-6xl">
-        <header class="bg-blue-600 text-white p-6 rounded-lg shadow-md mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+    <div class="container mx-auto p-4 max-w-5xl">
+        <header class="bg-slate-800 p-6 rounded-2xl shadow-xl mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 border border-slate-700">
             <div>
-                <h1 class="text-2xl font-bold">Panel de Control de Personal</h1>
-                <p class="text-sm opacity-90">Gestión de trabajadores, asistencia por QR y respaldos</p>
+                <h1 class="text-2xl font-black text-emerald-400">Panel de Asistencia QR</h1>
+                <p class="text-xs text-slate-400">Optimizado para escaneo directo con dispositivo móvil</p>
             </div>
-            <div class="flex gap-2">
-                <button onclick="abrirModalTrabajador()" class="bg-green-500 hover:bg-green-600 px-4 py-2 rounded font-semibold text-sm transition shadow">
-                    + Nuevo Trabajador
+            <div class="flex gap-2 w-full sm:w-auto">
+                <button onclick="abrirModalTrabajador()" class="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-4 py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-emerald-500/20">
+                    + Nuevo Personal
                 </button>
-                <button onclick="exportarBackup()" class="bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded font-semibold text-sm transition shadow">
-                    📦 Exportar Backup (.js)
+                <button onclick="exportarBackup()" class="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-indigo-600/20">
+                    📦 Exportar (.JS)
                 </button>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <div class="bg-white p-4 rounded-lg shadow-md flex flex-col items-center justify-center">
-                <h2 class="text-lg font-bold mb-3 text-gray-700">Control de Asistencia QR</h2>
-                <div id="reader" class="w-full max-w-xs border-2 border-dashed border-gray-300 rounded" style="min-height: 250px;"></div>
-                <button onclick="iniciarEscaneo()" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium w-full">
-                    📷 Activar Cámara QR
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            
+            <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 flex flex-col items-center">
+                <h2 class="text-sm font-bold tracking-wider uppercase text-slate-400 mb-3 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Lector QR de Cámara
+                </h2>
+                
+                <div class="relative w-full aspect-square max-w-[280px] bg-black rounded-xl overflow-hidden border-2 border-slate-600">
+                    <video id="preview" class="w-full h-full object-cover"></video>
+                    <div class="absolute inset-0 border-2 border-emerald-500/30 pointer-events-none rounded-xl flex items-center justify-center">
+                        <div class="w-48 h-48 border-2 border-dashed border-emerald-400/70 rounded-lg"></div>
+                    </div>
+                </div>
+
+                <button onclick="encenderCamaraMovil()" class="mt-4 w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all">
+                    📸 Abrir Cámara Trasera
                 </button>
             </div>
 
-            <div class="bg-white p-4 rounded-lg shadow-md lg:col-span-2">
-                <h2 class="text-lg font-bold mb-2 text-gray-700">Calendario de Asistencias</h2>
-                <div id="calendar" class="max-h-[400px] text-xs"></div>
+            <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 md:col-span-2">
+                <h2 class="text-sm font-bold tracking-wider uppercase text-slate-400 mb-3">Historial de Asistencias</h2>
+                <div id="calendar" class="text-xs text-slate-200 bg-slate-900 p-3 rounded-xl border border-slate-700"></div>
             </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="p-4 border-b border-gray-200 bg-gray-50">
-                <h2 class="text-lg font-bold text-gray-700">Listado de Trabajadores (CRUD)</h2>
+        <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden shadow-2xl">
+            <div class="p-4 bg-slate-750 border-b border-slate-700">
+                <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400">Trabajadores Registrados (20 iniciales)</h2>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-100 text-gray-600 uppercase text-xs tracking-wider border-b border-gray-200">
-                            <th class="p-3">ID / QR</th>
-                            <th class="p-3">Nombre Completo</th>
-                            <th class="p-3">Puesto</th>
-                            <th class="p-3">Acciones</th>
+                <table class="w-full text-left">
+                    <thead class="bg-slate-900 text-slate-400 text-[11px] uppercase tracking-wider">
+                        <tr>
+                            <th class="p-4">Código QR</th>
+                            <th class="p-4">Trabajador</th>
+                            <th class="p-4">Cargo / Puesto</th>
+                            <th class="p-4 text-center">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-trabajadores" class="divide-y divide-gray-200 text-sm">
+                    <tbody id="tabla-trabajadores" class="divide-y divide-slate-700 text-xs">
                         </tbody>
                 </table>
             </div>
@@ -65,7 +76,7 @@
     </div>
 
     <script>
-        // 1. Datos iniciales precargados (20 Trabajadores)
+        // 1. Base de datos con los 20 registros iniciales solicitados
         let trabajadores = [
             { id: "EMP-01", nombre: "Juan Pérez", puesto: "Gerente" },
             { id: "EMP-02", nombre: "María Gómez", puesto: "Desarrolladora" },
@@ -77,7 +88,7 @@
             { id: "EMP-08", nombre: "Lucía Álvarez", puesto: "Marketing" },
             { id: "EMP-09", nombre: "Pedro Ruiz", puesto: "Seguridad" },
             { id: "EMP-10", nombre: "Elena Torres", puesto: "Sistemas" },
-            { id: "EMP-11", nombre: "Miguel Ángel", puesto: "Logística" },
+            { id: "EMP-11", mail: "", nombre: "Miguel Ángel", puesto: "Logística" },
             { id: "EMP-12", nombre: "Laura Morales", puesto: "Recepcionista" },
             { id: "EMP-13", nombre: "Jorge Castro", puesto: "Analista de Datos" },
             { id: "EMP-14", nombre: "Claudia Ortiz", puesto: "SEO Expert" },
@@ -89,39 +100,33 @@
             { id: "EMP-20", nombre: "Isabel Méndez", puesto: "Finanzas" }
         ];
 
-        let asistencias = [
-            { title: "Juan Pérez (Presente)", start: new Date().toISOString().split('T')[0], color: '#10B981' }
-        ];
-
+        let asistencias = [];
         let calendar;
-        let html5QrcodeScanner;
+        let scannerMobile;
 
-        // Inicialización del Sistema
         document.addEventListener('DOMContentLoaded', () => {
             renderTrabajadores();
             inicializarCalendario();
         });
 
-        // 2. Renderizar Tabla de Trabajadores
         function renderTrabajadores() {
             const tbody = document.getElementById('tabla-trabajadores');
             tbody.innerHTML = '';
             trabajadores.forEach(t => {
                 tbody.innerHTML += `
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="p-3 font-mono font-bold text-blue-600">${t.id}</td>
-                        <td class="p-3 font-medium">${t.nombre}</td>
-                        <td class="p-3 text-gray-600">${t.puesto}</td>
-                        <td class="p-3 flex gap-2">
-                            <button onclick="abrirModalTrabajador('${t.id}')" class="text-blue-500 hover:text-blue-700 font-medium text-xs bg-blue-50 px-2 py-1 rounded">Editar</button>
-                            <button onclick="eliminarTrabajador('${t.id}')" class="text-red-500 hover:text-red-700 font-medium text-xs bg-red-50 px-2 py-1 rounded">Eliminar</button>
+                    <tr class="hover:bg-slate-750/50 transition-colors">
+                        <td class="p-4 font-mono font-bold text-emerald-400">${t.id}</td>
+                        <td class="p-4 font-semibold text-slate-200">${t.nombre}</td>
+                        <td class="p-4 text-slate-400">${t.puesto}</td>
+                        <td class="p-4 flex justify-center gap-2">
+                            <button onclick="abrirModalTrabajador('${t.id}')" class="px-2.5 py-1 rounded-md bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 font-bold transition">Editar</button>
+                            <button onclick="eliminarTrabajador('${t.id}')" class="px-2.5 py-1 rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 font-bold transition">Eliminar</button>
                         </td>
                     </tr>
                 `;
             });
         }
 
-        // 3. Inicializar FullCalendar
         function inicializarCalendario() {
             const calendarEl = document.getElementById('calendar');
             calendar = new FullCalendar.Calendar(calendarEl, {
@@ -135,140 +140,163 @@
             calendar.render();
         }
 
-        // 4. Formulario Interactivo (Crear / Editar) con SweetAlert2
-        async function abrirModalTrabajador(id = null) {
-            const esEdicion = id !== null;
-            const trabajador = esEdicion ? trabajadores.find(t => t.id === id) : { id: '', nombre: '', puesto: '' };
-
-            const { value: formValues } = await Swal.fire({
-                title: esEdicion ? 'Editar Trabajador' : 'Registrar Nuevo Trabajador',
-                html: `
-                    <input id="swal-id" class="swal2-input !text-sm" placeholder="ID de Empleado (Ej: EMP-21)" value="${trabajador.id}" ${esEdicion ? 'disabled' : ''}>
-                    <input id="swal-nombre" class="swal2-input !text-sm" placeholder="Nombre Completo" value="${trabajador.nombre}">
-                    <input id="swal-puesto" class="swal2-input !text-sm" placeholder="Puesto / Cargo" value="${trabajador.puesto}">
-                `,
-                focusConfirm: false,
-                showCancelButton: true,
-                confirmButtonText: 'Guardar',
-                cancelButtonText: 'Cancelar',
-                preConfirm: () => {
-                    const idVal = document.getElementById('swal-id').value.trim();
-                    const nombreVal = document.getElementById('swal-nombre').value.trim();
-                    const puestoVal = document.getElementById('swal-puesto').value.trim();
-                    
-                    if (!idVal || !nombreVal || !puestoVal) {
-                        Swal.showValidationMessage('Todos los campos son obligatorios');
-                        return false;
-                    }
-                    if (!esEdicion && trabajadores.some(t => t.id === idVal)) {
-                        Swal.showValidationMessage('El ID ya se encuentra registrado');
-                        return false;
-                    }
-                    return { id: idVal, nombre: nombreVal, puesto: puestoVal };
-                }
-            });
-
-            if (formValues) {
-                if (esEdicion) {
-                    const idx = trabajadores.findIndex(t => t.id === id);
-                    trabajadores[idx] = { ...trabajadores[idx], nombre: formValues.nombre, puesto: formValues.puesto };
-                    Swal.fire('¡Actualizado!', 'Datos modificados con éxito.', 'success');
-                } else {
-                    trabajadores.push(formValues);
-                    Swal.fire('¡Registrado!', 'Trabajador añadido correctamente.', 'success');
-                }
-                renderTrabajadores();
+        // CONTROL EXCLUSIVO DE CÁMARA MÓVIL (Instascan)
+        function encenderCamaraMovil() {
+            if (scannerMobile) {
+                scannerMobile.stop();
             }
-        }
 
-        // 5. Eliminar Registro
-        function eliminarTrabajador(id) {
-            Swal.fire({
-                title: '¿Estás seguro?',
-                text: `Vas a eliminar al trabajador con ID: ${id}`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#EF4444',
-                confirmButtonText: 'Sí, eliminar',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    trabajadores = trabajadores.filter(t => t.id !== id);
-                    renderTrabajadores();
-                    Swal.fire('Eliminado', 'El registro ha sido borrado.', 'success');
-                }
+            scannerMobile = new Instascan.Scanner({ 
+                video: document.getElementById('preview'), 
+                mirror: false // Desactivar espejo para leer QRs correctamente
             });
-        }
 
-        // 6. Registro de Asistencias mediante QR (Cámara del dispositivo)
-        function iniciarEscaneo() {
-            if(html5QrcodeScanner) html5QrcodeScanner.clear();
-
-            html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-            html5QrcodeScanner.render((qrCodeMessage) => {
-                // Se ejecuta al detectar un código QR exitosamente
-                const empleado = trabajadores.find(t => t.id === qrCodeMessage.trim());
-                
+            scannerMobile.addListener('scan', function (content) {
+                const empleado = trabajadores.find(t => t.id === content.trim());
                 if (empleado) {
-                    registrarAsistenciaEvento(empleado);
-                    Swal.fire('¡Asistencia Registrada!', `${empleado.nombre} ha marcado entrada.`, 'success');
-                    html5QrcodeScanner.clear(); // Detener cámara tras detectar
+                    registrarAsistenciaEfectiva(empleado);
+                    Swal.fire({
+                        title: '¡QR Escaneado!',
+                        text: `Asistencia registrada para: ${empleado.nombre}`,
+                        icon: 'success',
+                        background: '#1e293b',
+                        color: '#fff'
+                    });
                 } else {
-                    Swal.fire('Error de Escaneo', `El código "${qrCodeMessage}" no pertenece a ningún trabajador registrado.`, 'error');
+                    Swal.fire({
+                        title: 'Código Desconocido',
+                        text: `El QR "${content}" no coincide con ningún empleado.`,
+                        icon: 'error',
+                        background: '#1e293b',
+                        color: '#fff'
+                    });
                 }
-            }, (errorMessage) => {
-                // Silenciar errores comunes de búsqueda de QR en el frame
+            });
+
+            // Forzar búsqueda de la cámara trasera del smartphone
+            Instascan.Camera.getCameras().then(function (cameras) {
+                if (cameras.length > 0) {
+                    // Selecciona por defecto la última cámara detectada (usualmente la trasera en móviles)
+                    let camaraTrasera = cameras[cameras.length - 1]; 
+                    
+                    // Si detecta múltiples, buscar explícitamente palabras clave de cámara trasera
+                    for(let i=0; i<cameras.length; i++) {
+                        if(cameras[i].name.toLowerCase().includes('back') || cameras[i].name.toLowerCase().includes('trasera') || cameras[i].name.toLowerCase().includes('environment')) {
+                            camaraTrasera = cameras[i];
+                            break;
+                        }
+                    }
+                    
+                    scannerMobile.start(camaraTrasera).catch(e => {
+                        Swal.fire('Error de Acceso', 'Asegúrate de dar permisos de cámara al navegador.', 'error');
+                    });
+                } else {
+                    Swal.fire('Error', 'No se detectaron cámaras en este dispositivo.', 'error');
+                }
+            }).catch(function (e) {
+                console.error(e);
+                Swal.fire('Error Crítico', 'No se pudo acceder al hardware de video.', 'error');
             });
         }
 
-        function registrarAsistenciaEvento(empleado, fecha = null) {
-            const targetDate = fecha || new Date().toISOString().split('T')[0];
+        function registrarAsistenciaEfectiva(empleado, fecha = null) {
+            const dateStr = fecha || new Date().toISOString().split('T')[0];
             const nuevaAsistencia = {
-                title: `${empleado.nombre} (QR)`,
-                start: targetDate,
+                title: `${empleado.nombre} (Presente)`,
+                start: dateStr,
                 color: '#10B981'
             };
             asistencias.push(nuevaAsistencia);
             calendar.addEvent(nuevaAsistencia);
         }
 
-        // 7. Gestión Manual Interactiva de Asistencias (Haciendo click en un día del calendario)
-        async function gestionarAsistenciaManual(fechaSeleccionada) {
-            let opcionesTrabajadores = trabajadores.reduce((acc, t) => {
-                acc[t.id] = t.nombre;
-                return acc;
-            }, {});
+        // CRUD: Crear y Editar con Formularios Interactivos de SweetAlert2
+        async function abrirModalTrabajador(id = null) {
+            const esEdicion = id !== null;
+            const t = esEdicion ? trabajadores.find(emp => emp.id === id) : { id: '', nombre: '', puesto: '' };
 
-            const { value: empleadoId } = await Swal.fire({
-                title: `Asistencia para el ${fechaSeleccionada}`,
-                input: 'select',
-                inputOptions: opcionesTrabajadores,
-                inputPlaceholder: 'Selecciona un trabajador',
+            const { value: formValues } = await Swal.fire({
+                title: `<span style="color:#34d399">${esEdicion ? 'Editar Registro' : 'Nuevo Registro'}</span>`,
+                background: '#1e293b',
+                color: '#fff',
+                html: `
+                    <input id="swal-id" class="swal2-input !bg-slate-900 !text-white !border-slate-700" placeholder="Código de QR (Ej: EMP-21)" value="${t.id}" ${esEdicion ? 'disabled' : ''}>
+                    <input id="swal-nombre" class="swal2-input !bg-slate-900 !text-white !border-slate-700" placeholder="Nombre completo" value="${t.nombre}">
+                    <input id="swal-puesto" class="swal2-input !bg-slate-900 !text-white !border-slate-700" placeholder="Puesto" value="${t.puesto}">
+                `,
                 showCancelButton: true,
-                confirmButtonText: 'Registrar Presente',
-                cancelButtonText: 'Cerrar'
+                confirmButtonText: 'Confirmar',
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => {
+                    const idVal = document.getElementById('swal-id').value.trim();
+                    const nVal = document.getElementById('swal-nombre').value.trim();
+                    const pVal = document.getElementById('swal-puesto').value.trim();
+                    if(!idVal || !nVal || !pVal) { Swal.showValidationMessage('Rellena todos los campos'); return false; }
+                    if(!esEdicion && trabajadores.some(emp => emp.id === idVal)) { Swal.showValidationMessage('ID Duplicado'); return false; }
+                    return { id: idVal, nombre: nVal, puesto: pVal };
+                }
             });
 
-            if (empleadoId) {
-                const empleado = trabajadores.find(t => t.id === empleadoId);
-                registrarAsistenciaEvento(empleado, fechaSeleccionada);
-                Swal.fire('Registrado', `Asistencia manual añadida para ${empleado.nombre}`, 'success');
+            if (formValues) {
+                if (esEdicion) {
+                    const idx = trabajadores.findIndex(emp => emp.id === id);
+                    trabajadores[idx] = { ...trabajadores[idx], nombre: formValues.nombre, puesto: formValues.puesto };
+                } else {
+                    trabajadores.push(formValues);
+                }
+                renderTrabajadores();
+                Swal.fire({ icon: 'success', title: 'Guardado', background: '#1e293b', color: '#fff' });
             }
         }
 
-        // 8. Exportar Archivo JS de Respaldo (Backup)
+        // CRUD: Eliminar Registro
+        function eliminarTrabajador(id) {
+            Swal.fire({
+                title: '¿Eliminar trabajador?',
+                text: `ID: ${id}`,
+                icon: 'warning',
+                background: '#1e293b',
+                color: '#fff',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'Sí, borrar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    trabajadores = trabajadores.filter(t => t.id !== id);
+                    renderTrabajadores();
+                    Swal.fire({ title: 'Eliminado', icon: 'success', background: '#1e293b', color: '#fff' });
+                }
+            });
+        }
+
+        // Gestión manual interactiva de asistencias mediante clic en el calendario
+        async function gestionarAsistenciaManual(fechaSeleccionada) {
+            let options = trabajadores.reduce((acc, t) => { acc[t.id] = t.nombre; return acc; }, {});
+            const { value: empleadoId } = await Swal.fire({
+                title: 'Control Manual de Asistencia',
+                text: `Fecha: ${fechaSeleccionada}`,
+                input: 'select',
+                inputOptions: options,
+                inputPlaceholder: 'Selecciona al trabajador',
+                background: '#1e293b',
+                color: '#fff',
+                showCancelButton: true
+            });
+            if (empleadoId) {
+                const emp = trabajadores.find(t => t.id === empleadoId);
+                registrarAsistenciaEfectiva(emp, fechaSeleccionada);
+            }
+        }
+
+        // Exportar archivo JS con los datos de Backup
         function exportarBackup() {
-            const backupData = `// Backup del Sistema de Personal\nconst backupTrabajadores = ${JSON.stringify(trabajadores, null, 4)};\nconst backupAsistencias = ${JSON.stringify(asistencias, null, 4)};`;
-            
-            const blob = new Blob([backupData], { type: "application/javascript;charset=utf-8" });
+            const dataStr = `// RESPALDO DE ASISTENCIA Y PERSONAL\nconst backupTrabajadores = ${JSON.stringify(trabajadores, null, 4)};\nconst backupAsistencias = ${JSON.stringify(asistencias, null, 4)};`;
+            const blob = new Blob([dataStr], { type: "application/javascript" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            
             a.href = url;
-            a.download = `backup_personal_${new Date().toISOString().split('T')[0]}.js`;
-            document.body.appendChild(a);
+            a.download = `backup_asistencia_${new Date().toISOString().split('T')[0]}.js`;
             a.click();
-            document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
     </script>
