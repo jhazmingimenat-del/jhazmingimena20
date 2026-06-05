@@ -3,91 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema RRHH y Asistencia QR</title>
+    <title>Sistema de Gestión de Personal y Asistencia</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <style>
-        #reader {
-            width: 100%;
-            max-width: 350px;
-            background: #1e293b;
-            border-radius: 12px;
-            overflow: hidden;
-            margin: 0 auto;
-        }
-        #reader video {
-            object-fit: cover !important;
-            border-radius: 12px;
-        }
+        .fc { max-height: 500px; }
+        #reader { width: 100%; max-width: 400px; margin: 0 auto; }
     </style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-800 min-h-screen">
+<body class="bg-gray-100 font-sans text-gray-800">
 
-    <div class="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        <div class="space-y-6">
-            <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 text-center space-y-4">
-                <h2 class="text-xl font-bold text-slate-900 flex items-center justify-center gap-2">
-                    📷 Lector QR de Asistencia
-                </h2>
-                <p class="text-xs text-slate-500">Apunta al código QR con el DNI del trabajador (requiere HTTPS en móviles).</p>
+    <div class="flex flex-col md:flex-row min-h-screen">
+        <aside class="w-full md:w-64 bg-slate-900 text-white p-6 space-y-6">
+            <h1 class="text-xl font-bold tracking-wider text-center border-b border-slate-700 pb-4">RRHH & QR Control</h1>
+            <nav class="space-y-2">
+                <button onclick="switchTab('trabajadores')" class="w-full text-left py-2 px-4 rounded hover:bg-slate-800 transition duration-200 font-medium">👥 Trabajadores</button>
+                <button onclick="switchTab('asistencia')" class="w-full text-left py-2 px-4 rounded hover:bg-slate-800 transition duration-200 font-medium">📅 Calendario y QR</button>
+            </nav>
+            <div class="pt-6 border-t border-slate-700 space-y-2">
+                <button onclick="exportarBackup()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded text-sm font-semibold transition">💾 Exportar Backup (.js)</button>
+            </div>
+        </aside>
+
+        <main class="flex-1 p-6 md:p-10">
+            
+            <section id="sec-trabajadores" class="space-y-6">
+                <div class="flex justify-between items-center flex-wrap gap-4">
+                    <h2 class="text-2xl font-bold text-gray-900">Listado de Trabajadores</h2>
+                    <button onclick="abrirFormularioTrabajador()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded shadow transition">➕ Registrar Trabajador</button>
+                </div>
                 
-                <div id="reader"></div>
-
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="encenderCamara()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-2.5 px-4 rounded-xl transition shadow-sm">
-                        Activar Cámara
-                    </button>
-                    <button onclick="apagarCamara()" class="bg-slate-500 hover:bg-slate-600 text-white text-sm font-semibold py-2.5 px-4 rounded-xl transition shadow-sm">
-                        Detener
-                    </button>
+                <div class="overflow-x-auto bg-white rounded-lg shadow">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 border-b border-gray-200 text-gray-600 text-sm uppercase font-semibold">
+                                <th class="p-4">DNI</th>
+                                <th class="p-4">Nombres y Apellidos</th>
+                                <th class="p-4">Género</th>
+                                <th class="p-4">Edad</th>
+                                <th class="p-4">Teléfono</th>
+                                <th class="p-4 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-trabajadores" class="divide-y divide-gray-100 text-sm">
+                            </tbody>
+                    </table>
                 </div>
-            </div>
+            </section>
 
-            <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200">
-                <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">Marcaciones Recientes</h3>
-                <div class="max-h-60 overflow-y-auto">
-                    <ul id="log-asistencias" class="text-xs space-y-2 list-none">
-                        <li class="text-slate-400 italic">No hay marcaciones registradas todavía.</li>
-                    </ul>
+            <section id="sec-asistencia" class="space-y-6 hidden">
+                <h2 class="text-2xl font-bold text-gray-900">Control de Asistencias</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow space-y-4 flex flex-col items-center">
+                        <h3 class="text-lg font-semibold text-center">Lector de Asistencia QR</h3>
+                        <div id="reader" class="bg-gray-50 border-2 border-dashed border-gray-300 rounded"></div>
+                        <div class="flex gap-2 w-full">
+                            <button onclick="iniciarEscaneo()" class="flex-1 bg-sky-600 text-white py-2 rounded text-sm hover:bg-sky-700 transition">📷 Abrir Cámara</button>
+                            <button onclick="detenerEscaneo()" class="flex-1 bg-rose-600 text-white py-2 rounded text-sm hover:bg-rose-700 transition">🛑 Detener</button>
+                        </div>
+                        <button onclick="abrirAsistenciaManual()" class="w-full bg-slate-700 text-white py-2 rounded text-sm hover:bg-slate-800 transition">✏️ Registro Manual</button>
+                    </div>
+                    
+                    <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow">
+                        <div id="calendar"></div>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </section>
 
-        <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md border border-slate-200 space-y-4">
-            <div class="flex justify-between items-center flex-wrap gap-4">
-                <div>
-                    <h1 class="text-2xl font-bold text-slate-900">Panel de Trabajadores</h1>
-                    <p class="text-xs text-slate-500">Gestiona altas, bajas y modificaciones de personal.</p>
-                </div>
-                <button onclick="abrirFormulario()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 px-4 rounded-xl shadow transition">
-                    ➕ Nuevo Trabajador
-                </button>
-            </div>
-
-            <div class="overflow-x-auto rounded-xl border border-slate-100">
-                <table class="w-full text-left border-collapse text-sm">
-                    <thead>
-                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold text-xs uppercase">
-                            <th class="p-3">DNI</th>
-                            <th class="p-3">Nombres y Apellidos</th>
-                            <th class="p-3">Género</th>
-                            <th class="p-3">Edad</th>
-                            <th class="p-3">Teléfono</th>
-                            <th class="p-3 text-center">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-trabajadores" class="divide-y divide-slate-100">
-                        </tbody>
-                </table>
-            </div>
-        </div>
-
+        </main>
     </div>
 
     <script>
-        // --- BASE DE DATOS LOCAL DE 20 TRABAJADORES ---
+        // --- BASE DE DATOS INICIAL (20 Trabajadores) ---
         let trabajadores = [
             {dni:"45871293", nombres:"Carlos Alberto", apellidos:"Mendoza Ruiz", genero:"Masculino", edad:34, telefono:"981234567"},
             {dni:"71239485", nombres:"Ana Lucía", apellidos:"Quispe Huamán", genero:"Femenino", edad:28, telefono:"955781234"},
@@ -99,7 +89,7 @@
             {dni:"75192843", nombres:"Andrea del Pilar", apellidos:"Torres Gutiérrez", genero:"Femenino", edad:29, telefono:"921963852"},
             {dni:"16734928", nombres:"Luis Fernando", apellidos:"Rojas Vargas", genero:"Masculino", edad:50, telefono:"954741852"},
             {dni:"44321987", nombres:"Diana Carolina", apellidos:"Castillo Rey", genero:"Femenino", edad:33, telefono:"987321654"},
-            {dni:"70654321", nombres:"Ricardo Javier", apellidos:"Villanueva Paredes", genero:"Masculino", edad:27, telefono:"966987123"},
+            {dni:"70654321", nombres:"Ricardo Javier", Villanueva Paredes", genero:"Masculino", edad:27, telefono:"966987123"},
             {dni:"25814736", nombres:"Gabriela Beatriz", apellidos:"Ramos Soto", genero:"Femenino", edad:41, telefono:"911456321"},
             {dni:"47392158", nombres:"Alejandro José", apellidos:"Salazar Delgado", genero:"Masculino", edad:35, telefono:"945159753"},
             {dni:"72159483", nombres:"Natalia Inés", apellidos:"Benitez Méndez", genero:"Femenino", edad:24, telefono:"993753159"},
@@ -111,189 +101,291 @@
             {dni:"76541239", nombres:"Camila Belén", apellidos:"Paredes Ríos", genero:"Femenino", edad:25, telefono:"917789123"}
         ];
 
-        let html5Qrcode = null;
+        let asistencias = [];
+        let html5QrcodeScanner = null;
+        let calendar = null;
 
-        // Renderizar la tabla al cargar la página
-        document.addEventListener("DOMContentLoaded", () => {
-            renderTabla();
+        // --- INICIALIZACIÓN ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTrabajadores();
+            initCalendar();
         });
 
-        function renderTabla() {
-            const tbody = document.getElementById("tabla-trabajadores");
+        // Navegación de pestañas
+        function switchTab(tab) {
+            document.getElementById('sec-trabajadores').classList.toggle('hidden', tab !== 'trabajadores');
+            document.getElementById('sec-asistencia').classList.toggle('hidden', tab !== 'asistencia');
+            if (tab === 'asistencia' && calendar) {
+                calendar.render(); // Refrescar renderizado del calendario
+            }
+        }
+
+        // --- CRUD TRABAJADORES ---
+        function renderTrabajadores() {
+            const tbody = document.getElementById('tabla-trabajadores');
             tbody.innerHTML = trabajadores.map((t, index) => `
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="p-3 font-mono font-bold text-indigo-600">${t.dni}</td>
-                    <td class="p-3 font-medium text-slate-700">${t.nombres} ${t.apellidos}</td>
-                    <td class="p-3">${t.genero}</td>
-                    <td class="p-3">${t.edad}</td>
-                    <td class="p-3 font-mono">${t.telefono}</td>
-                    <td class="p-3 text-center space-x-1 whitespace-nowrap">
-                        <button onclick="abrirFormulario(${index})" class="bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-semibold py-1 px-2.5 rounded-lg transition">Editar</button>
-                        <button onclick="eliminarTrabajador(${index})" class="bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-semibold py-1 px-2.5 rounded-lg transition">Eliminar</button>
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="p-4 font-mono font-medium">${t.dni}</td>
+                    <td class="p-4 font-semibold text-slate-700">${t.nombres} ${t.apellidos}</td>
+                    <td class="p-4">${t.genero}</td>
+                    <td class="p-4">${t.edad}</td>
+                    <td class="p-4 font-mono">${t.telefono}</td>
+                    <td class="p-4 text-center space-x-2">
+                        <button onclick="abrirFormularioTrabajador(${index})" class="text-indigo-600 hover:text-indigo-900 font-medium">Editar</button>
+                        <button onclick="eliminarTrabajador(${index})" class="text-rose-600 hover:text-rose-900 font-medium">Eliminar</button>
                     </td>
                 </tr>
             `).join('');
         }
 
-        // --- INTERACTVIDAD DEL FORMULARIO (CRUD CON SWEETALERT2) ---
-        function abrirFormulario(index = null) {
-            const esEdicion = index !== null;
-            const t = esEdicion ? trabajadores[index] : {dni:'', nombres:'', apellidos:'', genero:'Masculino', edad:'', telefono:''};
-
+        function abrirFormularioTrabajador(index = null) {
+            const t = index !== null ? trabajadores[index] : {dni:'', nombres:'', apellidos:'', genero:'Masculino', edad:'', telefono:''};
+            
             Swal.fire({
-                title: esEdicion ? '📝 Editar Trabajador' : '➕ Registrar Trabajador',
+                title: index !== null ? 'Editar Trabajador' : 'Nuevo Trabajador',
                 html: `
-                    <input id="sw-dni" class="swal2-input font-mono" placeholder="DNI (8 dígitos)" value="${t.dni}" ${esEdicion ? 'disabled' : ''}>
-                    <input id="sw-nombres" class="swal2-input" placeholder="Nombres" value="${t.nombres}">
-                    <input id="sw-apellidos" class="swal2-input" placeholder="Apellidos" value="${t.apellidos}">
-                    <select id="sw-genero" class="swal2-input">
+                    <input id="swat-dni" class="swal2-input font-mono" placeholder="DNI (8 dígitos)" value="${t.dni}" ${index !== null ? 'disabled' : ''}>
+                    <input id="swat-nombres" class="swal2-input" placeholder="Nombres" value="${t.nombres}">
+                    <input id="swat-apellidos" class="swal2-input" placeholder="Apellidos" value="${t.apellidos}">
+                    <select id="swat-genero" class="swal2-input">
                         <option value="Masculino" ${t.genero === 'Masculino' ? 'selected' : ''}>Masculino</option>
                         <option value="Femenino" ${t.genero === 'Femenino' ? 'selected' : ''}>Femenino</option>
                     </select>
-                    <input id="sw-edad" type="number" class="swal2-input" placeholder="Edad" value="${t.edad}">
-                    <input id="sw-telefono" class="swal2-input" placeholder="Teléfono" value="${t.telefono}">
+                    <input id="swat-edad" type="number" class="swal2-input" placeholder="Edad" value="${t.edad}">
+                    <input id="swat-telefono" class="swal2-input" placeholder="Teléfono" value="${t.telefono}">
                 `,
+                focusConfirm: false,
                 showCancelButton: true,
                 confirmButtonText: 'Guardar',
                 cancelButtonText: 'Cancelar',
                 preConfirm: () => {
-                    const dni = document.getElementById('sw-dni').value.trim();
-                    const nombres = document.getElementById('sw-nombres').value.trim();
-                    const apellidos = document.getElementById('sw-apellidos').value.trim();
-                    const genero = document.getElementById('sw-genero').value;
-                    const edad = document.getElementById('sw-edad').value;
-                    const telefono = document.getElementById('sw-telefono').value.trim();
+                    const dni = document.getElementById('swat-dni').value.trim();
+                    const nombres = document.getElementById('swat-nombres').value.trim();
+                    const apellidos = document.getElementById('swat-apellidos').value.trim();
+                    const genero = document.getElementById('swat-genero').value;
+                    const edad = document.getElementById('swat-edad').value;
+                    const telefono = document.getElementById('swat-telefono').value.trim();
 
-                    if (!dni || !nombres || !apellidos || !edad || !telefono) {
-                        Swal.showValidationMessage('Por favor completa todos los campos');
+                    if(!dni || !nombres || !apellidos || !edad || !telefono) {
+                        Swal.showValidationMessage('Todos los campos son obligatorios');
                         return false;
                     }
                     return { dni, nombres, apellidos, genero, edad: parseInt(edad), telefono };
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    if (esEdicion) {
+                    if (index !== null) {
                         trabajadores[index] = result.value;
                     } else {
-                        if (trabajadores.some(item => item.dni === result.value.dni)) {
-                            Swal.fire('Error', 'Este DNI ya está registrado.', 'error');
+                        if(trabajadores.some(tr => tr.dni === result.value.dni)) {
+                            Swal.fire('Error', 'El DNI ya se encuentra registrado.', 'error');
                             return;
                         }
                         trabajadores.push(result.value);
                     }
-                    renderTabla();
-                    Swal.fire('Guardado', 'Los datos se actualizaron correctamente.', 'success');
+                    renderTrabajadores();
+                    Swal.fire('¡Éxito!', 'Los datos han sido guardados.', 'success');
                 }
             });
         }
 
         function eliminarTrabajador(index) {
             Swal.fire({
-                title: '¿Eliminar registro?',
-                text: `Esta acción removerá a ${trabajadores[index].nombres} permanentemente.`,
+                title: '¿Estás seguro?',
+                text: `Se eliminará a ${trabajadores[index].nombres}. Esta acción no se puede deshacer.`,
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#ef4444',
+                confirmButtonColor: '#e11d48',
                 confirmButtonText: 'Sí, eliminar',
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
                     trabajadores.splice(index, 1);
-                    renderTabla();
-                    Swal.fire('Eliminado', 'El trabajador fue removido.', 'success');
+                    renderTrabajadores();
+                    Swal.fire('Eliminado', 'El trabajador ha sido removido.', 'success');
                 }
             });
         }
 
-        // --- ENCIENDE Y GESTIONA LA CÁMARA (QR) ---
-        function encenderCamara() {
-            if (!html5Qrcode) {
-                html5Qrcode = new Html5Qrcode("reader");
-            }
-
-            const config = { 
-                fps: 15, 
-                qrbox: { width: 220, height: 220 } 
-            };
-
-            // Fuerza el uso de la cámara trasera en dispositivos móviles usando 'environment'
-            html5Qrcode.start(
-                { facingMode: "environment" }, 
-                config, 
-                onScanSuccess, 
-                onScanFailure
-            ).catch(err => {
-                console.warn("Fallo cámara trasera, alternando...", err);
-                // Intento secundario si está en laptop/PC de escritorio sin cámara trasera
-                html5Qrcode.start({ facingMode: "user" }, config, onScanSuccess, onScanFailure)
-                .catch(error => {
-                    Swal.fire({
-                        title: 'Permiso Denegado',
-                        text: 'No se puede abrir la cámara. Recuerda activar los permisos en el navegador y que requieres usar HTTPS en móviles.',
-                        icon: 'error'
-                    });
-                });
+        // --- SISTEMA DE ASISTENCIA Y CALENDARIO ---
+        function initCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'es',
+                headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridDay' },
+                events: function(info, successCallback, failureCallback) {
+                    successCallback(asistencias);
+                },
+                eventClick: function(info) {
+                    gestionarAsistenciaInteractiva(info.event);
+                }
             });
+            calendar.render();
         }
 
-        function onScanSuccess(decodedText) {
-            // Detener temporalmente el lector para evitar escaneos duplicados repetitivos
-            apagarCamara();
-
-            const dniEscaneado = decodedText.trim();
-            const empleado = trabajadores.find(t => t.dni === dniEscaneado);
-
+        function registrarAsistencia(dni, tipo = "Entrada", fechaManual = null) {
+            const empleado = trabajadores.find(t => t.dni === dni);
             if (!empleado) {
-                Swal.fire({
-                    title: 'DNI No Encontrado',
-                    text: `El código QR leído (${dniEscaneado}) no coincide con ningún trabajador.`,
-                    icon: 'error'
-                }).then(() => encenderCamara());
+                Swal.fire('No encontrado', `El DNI ${dni} no pertenece a ningún trabajador.`, 'error');
                 return;
             }
 
-            // Preguntar si es Entrada o Salida con botones interactivos
-            Swal.fire({
-                title: `Hola, ${empleado.nombres}`,
-                text: `¿Deseas registrar Entrada o Salida para el DNI: ${empleado.dni}?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: '✅ Entrada',
-                cancelButtonText: '❌ Salida',
-                confirmButtonColor: '#10b981',
-                cancelButtonColor: '#f43f5e'
-            }).then((result) => {
-                const tipo = result.isConfirmed ? "Entrada" : "Salida";
-                const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                
-                // Imprimir en la lista de marcaciones en pantalla
-                const log = document.getElementById('log-asistencias');
-                if (log.innerHTML.includes("No hay marcaciones")) log.innerHTML = ""; // Limpiar texto vacío
-                
-                log.innerHTML = `
-                    <li class="bg-slate-50 border border-slate-200 p-2 rounded-lg shadow-sm">
-                        <span class="font-mono font-bold text-slate-500">[${hora}]</span> 
-                        <span class="font-semibold text-slate-700">${empleado.nombres} ${empleado.apellidos}</span> 
-                        <span class="px-1.5 py-0.5 rounded text-[10px] text-white font-bold ml-1 ${result.isConfirmed ? 'bg-emerald-500':'bg-rose-500'}">${tipo}</span>
-                    </li>
-                ` + log.innerHTML;
+            const ahora = fechaManual ? new Date(fechaManual) : new Date();
+            const fechaIso = ahora.toISOString().split('T')[0];
+            const horaStr = ahora.toTimeString().split(' ')[0].substring(0, 5);
 
-                Swal.fire('¡Éxito!', `Se registró tu ${tipo} correctamente.`, 'success')
-                    .then(() => encenderCamara()); // Reactivar la cámara para el siguiente turno
+            // Generar evento para el calendario
+            const nuevoEvento = {
+                id: 'asist_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                title: `${tipo === 'Entrada' ? '✅' : '❌'} ${empleado.nombres} (${tipo})`,
+                start: fechaManual ? fechaManual : ahora.toISOString(),
+                extendedProps: { dni: dni, tipo: tipo, hora: horaStr, fechaBase: fechaIso },
+                color: tipo === 'Entrada' ? '#10b981' : '#f43f5e'
+            };
+
+            asistencias.push(nuevoEvento);
+            calendar.refetchEvents();
+
+            Swal.fire({
+                title: 'Asistencia Grabada',
+                text: `${empleado.nombres} ${empleado.apellidos} - ${tipo} a las ${horaStr}`,
+                icon: 'success',
+                timer: 2500
             });
         }
 
-        function onScanFailure(error) {
-            // El escáner ejecuta esta función en bucle mientras busca un QR. Se deja vacío a propósito.
+        // Gestionar / Eliminar asistencias clickeadas en el calendario
+        function gestionarAsistenciaInteractiva(eventObj) {
+            const prop = eventObj.extendedProps;
+            const empleado = trabajadores.find(t => t.dni === prop.dni) || {nombres: 'Desconocido', apellidos: ''};
+
+            Swal.fire({
+                title: 'Detalle de Asistencia',
+                html: `
+                    <p class="text-left"><strong>Trabajador:</strong> ${empleado.nombres} ${empleado.apellidos}</p>
+                    <p class="text-left"><strong>DNI:</strong> ${prop.dni}</p>
+                    <p class="text-left"><strong>Registro:</strong> ${prop.tipo}</p>
+                    <p class="text-left"><strong>Hora registrada:</strong> ${prop.hora}</p>
+                `,
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Cerrar',
+                denyButtonText: '🗑️ Eliminar Registro',
+                denyButtonColor: '#e11d48',
+                cancelButtonText: '🔄 Cambiar Tipo (E/S)'
+            }).then((result) => {
+                if (result.isDenied) {
+                    asistencias = asistencias.filter(e => e.id !== eventObj.id);
+                    calendar.refetchEvents();
+                    Swal.fire('Eliminado', 'El registro de asistencia fue removido.', 'success');
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    // Editar tipo alternando Entrada/Salida
+                    const nuevoTipo = prop.tipo === 'Entrada' ? 'Salida' : 'Entrada';
+                    const idx = asistencias.findIndex(e => e.id === eventObj.id);
+                    if(idx !== -1) {
+                        asistencias[idx].extendedProps.tipo = nuevoTipo;
+                        asistencias[idx].title = `${nuevoTipo === 'Entrada' ? '✅' : '❌'} ${empleado.nombres} (${nuevoTipo})`;
+                        asistencias[idx].color = nuevoTipo === 'Entrada' ? '#10b981' : '#f43f5e';
+                        calendar.refetchEvents();
+                        Swal.fire('Actualizado', `Cambiado a ${nuevoTipo}`, 'success');
+                    }
+                }
+            });
         }
 
-        function apagarCamara() {
-            if (html5Qrcode && html5Qrcode.isScanning) {
-                html5Qrcode.stop().then(() => {
+        function abrirAsistenciaManual() {
+            let opcionesTrabajadores = trabajadores.map(t => `<option value="${t.dni}">${t.nombres} ${t.apellidos} (${t.dni})</option>`).join('');
+            
+            Swal.fire({
+                title: 'Registro Manual de Asistencia',
+                html: `
+                    <select id="asis-dni" class="swal2-input">${opcionesTrabajadores}</select>
+                    <select id="asis-tipo" class="swal2-input">
+                        <option value="Entrada">Entrada</option>
+                        <option value="Salida">Salida</option>
+                    </select>
+                    <input id="asis-fecha" type="datetime-local" class="swal2-input" value="${new Date().toISOString().substring(0,16)}">
+                `,
+                confirmButtonText: 'Registrar',
+                showCancelButton: true,
+                preConfirm: () => {
+                    return {
+                        dni: document.getElementById('asis-dni').value,
+                        tipo: document.getElementById('asis-tipo').value,
+                        fecha: document.getElementById('asis-fecha').value
+                    }
+                }
+            }).then(result => {
+                if(result.isConfirmed) {
+                    registrarAsistencia(result.value.dni, result.value.tipo, result.value.fecha);
+                }
+            });
+        }
+
+        // --- CÁMARA Y ESCÁNER QR ---
+        function iniciarEscaneo() {
+            document.getElementById('reader').innerHTML = ""; // Limpiar contenedor
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            
+            // Configuración óptima para teléfonos móviles usando la cámara trasera
+            html5QrcodeScanner.start(
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    // Acción al detectar código QR con éxito (Asume que el QR contiene solo el número de DNI)
+                    detenerEscaneo();
+                    
+                    Swal.fire({
+                        title: 'QR Detectado',
+                        text: `DNI detectado: ${decodedText}. ¿Registrar Entrada o Salida?`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: '✅ Entrada',
+                        cancelButtonText: '❌ Salida',
+                        confirmButtonColor: '#10b981',
+                        cancelButtonColor: '#f43f5e',
+                    }).then((result) => {
+                        const tipoRegistro = result.isConfirmed ? "Entrada" : "Salida";
+                        registrarAsistencia(decodedText.trim(), tipoRegistro);
+                    });
+                },
+                (errorMessage) => { /* Silenciar errores de escaneo continuo */ }
+            ).catch(err => {
+                Swal.fire('Error de cámara', 'No se pudo acceder a la cámara. Asegúrate de otorgar permisos o estar en una conexión segura (HTTPS).', 'error');
+            });
+        }
+
+        function detenerEscaneo() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
                     document.getElementById('reader').innerHTML = "";
-                    html5Qrcode = null;
-                }).catch(err => console.error("Error al apagar cámara", err));
+                }).catch(err => console.log("Error al detener", err));
             }
+        }
+
+        // --- RESPALDO / BACKUP ---
+        function exportarBackup() {
+            const dataBackup = {
+                fechaExportacion: new Date().toISOString(),
+                trabajadores: trabajadores,
+                asistencias: asistencias
+            };
+
+            const contenidoArchivo = `// Backup del Sistema de Personal\nconst BACKUP_DATA = ${JSON.stringify(dataBackup, null, 4)};`;
+            
+            const blob = new Blob([contenidoArchivo], { type: 'text/javascript' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup_personal_${new Date().toISOString().split('T')[0]}.js`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            Swal.fire('Backup Creado', 'Se ha descargado el archivo JS con los datos.', 'success');
         }
     </script>
 </body>
