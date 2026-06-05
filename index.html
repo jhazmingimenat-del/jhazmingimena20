@@ -1,518 +1,300 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema de Control de Estudiantes</title>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<style>
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial, sans-serif;
-}
-
-body{
-background:#f5f7fa;
-padding:20px;
-}
-
-h1{
-text-align:center;
-margin-bottom:20px;
-color:#2c3e50;
-}
-
-.dashboard{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-gap:15px;
-margin-bottom:20px;
-}
-
-.card{
-background:white;
-padding:20px;
-border-radius:10px;
-box-shadow:0 2px 10px rgba(0,0,0,.1);
-text-align:center;
-}
-
-.card h2{
-font-size:30px;
-color:#3498db;
-}
-
-.botones{
-display:flex;
-gap:10px;
-flex-wrap:wrap;
-margin-bottom:15px;
-}
-
-button{
-padding:10px 15px;
-border:none;
-border-radius:5px;
-cursor:pointer;
-color:white;
-}
-
-.agregar{background:#27ae60;}
-.exportar{background:#8e44ad;}
-
-input{
-padding:10px;
-width:100%;
-max-width:300px;
-margin-bottom:15px;
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-background:white;
-box-shadow:0 2px 10px rgba(0,0,0,.1);
-}
-
-th{
-background:#3498db;
-color:white;
-padding:10px;
-}
-
-td{
-padding:10px;
-text-align:center;
-border-bottom:1px solid #ddd;
-}
-
-.editar{
-background:#f39c12;
-}
-
-.eliminar{
-background:#e74c3c;
-}
-
-.asistencia{
-background:#16a085;
-}
-
-@media(max-width:768px){
-table{
-font-size:12px;
-}
-button{
-padding:8px;
-font-size:12px;
-}
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema RRHH y Asistencia QR</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        #reader {
+            width: 100%;
+            max-width: 350px;
+            background: #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+        #reader video {
+            object-fit: cover !important;
+            border-radius: 12px;
+        }
+    </style>
 </head>
-<body>
-
-<h1>Control de Estudiantes</h1>
-
-<div class="dashboard">
-<div class="card">
-<h3>Total Estudiantes</h3>
-<h2 id="totalEstudiantes">0</h2>
-</div>
-
-<div class="card">
-<h3>Asistencias</h3>
-<h2 id="totalAsistencias">0</h2>
-</div>
-</div>
-
-<div class="botones">
-<button class="agregar" onclick="nuevoEstudiante()">➕ Nuevo Estudiante</button>
-<button class="exportar" onclick="exportarDatos()">💾 Exportar Backup</button>
-</div>
-
-<input
-type="text"
-id="buscar"
-placeholder="Buscar estudiante..."
-onkeyup="filtrar()">
-
-<table>
-<thead>
-<tr>
-<th>DNI</th>
-<th>Nombres</th>
-<th>Apellidos</th>
-<th>Género</th>
-<th>Edad</th>
-<th>Teléfono</th>
-<th>Acciones</th>
-</tr>
-</thead>
-<tbody id="tabla"></tbody>
-</table>
-
-<script>
-
-let estudiantes = [
-
-{dni:"74851236",nombre:"Andrea Lucía",apellido:"Pérez Gómez",genero:"Femenino",edad:19,telefono:"987654321"},
-{dni:"73582419",nombre:"Carlos Alberto",apellido:"Rodríguez Díaz",genero:"Masculino",edad:21,telefono:"965874123"},
-{dni:"71245896",nombre:"Valeria Sofía",apellido:"Torres Rojas",genero:"Femenino",edad:18,telefono:"954321876"},
-{dni:"76985214",nombre:"Diego Alejandro",apellido:"Vargas Castillo",genero:"Masculino",edad:22,telefono:"978456123"},
-{dni:"74123698",nombre:"María Fernanda",apellido:"Huamán López",genero:"Femenino",edad:20,telefono:"981234567"},
-{dni:"75632147",nombre:"José Miguel",apellido:"Flores Sánchez",genero:"Masculino",edad:23,telefono:"968741258"},
-{dni:"72894561",nombre:"Camila Alejandra",apellido:"Mendoza Ruiz",genero:"Femenino",edad:19,telefono:"957486321"},
-{dni:"73418725",nombre:"Luis Fernando",apellido:"Castro Vega",genero:"Masculino",edad:21,telefono:"972345681"},
-{dni:"76258149",nombre:"Daniela Isabel",apellido:"Ramírez Paredes",genero:"Femenino",edad:18,telefono:"983216547"},
-{dni:"74963258",nombre:"Juan Esteban",apellido:"Gutiérrez Silva",genero:"Masculino",edad:22,telefono:"964785231"},
-{dni:"73125487",nombre:"Paola Milagros",apellido:"Salazar Quispe",genero:"Femenino",edad:20,telefono:"976512348"},
-{dni:"75896321",nombre:"Kevin André",apellido:"Navarro León",genero:"Masculino",edad:19,telefono:"952478136"},
-{dni:"74685213",nombre:"Fiorella Andrea",apellido:"Ramos Ortiz",genero:"Femenino",edad:21,telefono:"985632147"},
-{dni:"72369854",nombre:"Renato Javier",apellido:"Pacheco Torres",genero:"Masculino",edad:24,telefono:"971258364"},
-{dni:"75412369",nombre:"Karla Vanessa",apellido:"Cárdenas Flores",genero:"Femenino",edad:18,telefono:"959874123"},
-{dni:"73965412",nombre:"Sergio Daniel",apellido:"Aguilar Mendoza",genero:"Masculino",edad:20,telefono:"967123854"},
-{dni:"76521498",nombre:"Nicole Alessandra",apellido:"Chávez Ríos",genero:"Femenino",edad:22,telefono:"984751236"},
-{dni:"74219863",nombre:"Ángel Sebastián",apellido:"Herrera Salas",genero:"Masculino",edad:19,telefono:"973684125"},
-{dni:"75123684",nombre:"Lucía Belén",apellido:"Espinoza Cruz",genero:"Femenino",edad:21,telefono:"956321478"},
-{dni:"73698521",nombre:"Martín Alonso",apellido:"Valdivia Romero",genero:"Masculino",edad:23,telefono:"969852147"}
-
-];
-
-let asistencias=[];
-
-function renderTabla(lista=estudiantes){
-
-const tabla=document.getElementById("tabla");
-
-tabla.innerHTML="";
-
-lista.forEach((e,i)=>{
-
-tabla.innerHTML+=`
-<tr>
-<td>${e.dni}</td>
-<td>${e.nombre}</td>
-<td>${e.apellido}</td>
-<td>${e.genero}</td>
-<td>${e.edad}</td>
-<td>${e.telefono}</td>
-<td>
-<button class="editar" onclick="editar(${i})">✏️</button>
-<button class="eliminar" onclick="eliminar(${i})">🗑️</button>
-<button class="asistencia" onclick="registrarAsistencia('${e.dni}')">✔️</button>
-</td>
-</tr>
-`;
-
-});
-
-actualizarDashboard();
-
-}
-
-function actualizarDashboard(){
-
-document.getElementById("totalEstudiantes").textContent=
-estudiantes.length;
-
-document.getElementById("totalAsistencias").textContent=
-asistencias.length;
-
-}
-
-function nuevoEstudiante(){
-
-Swal.fire({
-title:"Nuevo Estudiante",
-html:`
-<input id="dni" class="swal2-input" placeholder="DNI">
-<input id="nombre" class="swal2-input" placeholder="Nombres">
-<input id="apellido" class="swal2-input" placeholder="Apellidos">
-<input id="genero" class="swal2-input" placeholder="Género">
-<input id="edad" class="swal2-input" placeholder="Edad">
-<input id="telefono" class="swal2-input" placeholder="Teléfono">
-`,
-preConfirm:()=>{
-
-estudiantes.push({
-dni:dni.value,
-nombre:nombre.value,
-apellido:apellido.value,
-genero:genero.value,
-edad:edad.value,
-telefono:telefono.value
-});
-
-renderTabla();
-
-}
-});
-
-}
-
-function editar(i){
-
-let e=estudiantes[i];
-
-Swal.fire({
-title:"Editar",
-html:`
-<input id="dni" class="swal2-input" value="${e.dni}">
-<input id="nombre" class="swal2-input" value="${e.nombre}">
-<input id="apellido" class="swal2-input" value="${e.apellido}">
-<input id="genero" class="swal2-input" value="${e.genero}">
-<input id="edad" class="swal2-input" value="${e.edad}">
-<input id="telefono" class="swal2-input" value="${e.telefono}">
-`,
-preConfirm:()=>{
-
-estudiantes[i]={
-dni:dni.value,
-nombre:nombre.value,
-apellido:apellido.value,
-genero:genero.value,
-edad:edad.value,
-telefono:telefono.value
-};
-
-renderTabla();
-
-}
-});
-
-}
-
-function eliminar(i){
-
-Swal.fire({
-title:"¿Eliminar?",
-icon:"warning",
-showCancelButton:true
-}).then(r=>{
-
-if(r.isConfirmed){
-
-estudiantes.splice(i,1);
-
-renderTabla();
-
-}
-
-});
-
-}
-
-function registrarAsistencia(dni){
-
-asistencias.push({
-dni:dni,
-fecha:new Date().toLocaleString()
-});
-
-Swal.fire(
-"Correcto",
-"Asistencia registrada",
-"success"
-);
-
-actualizarDashboard();
-
-}
-
-function exportarDatos(){
-
-const datos={
-estudiantes,
-asistencias
-};
-
-const blob=new Blob(
-[JSON.stringify(datos,null,2)],
-{type:"application/json"}
-);
-
-const a=document.createElement("a");
-
-a.href=URL.createObjectURL(blob);
-
-a.download="backup_estudiantes.json";
-
-a.click();
-
-}
-
-function filtrar(){
-
-let texto=
-document.getElementById("buscar")
-.value.toLowerCase();
-
-let resultado=
-estudiantes.filter(e=>
-
-e.nombre.toLowerCase().includes(texto) ||
-e.apellido.toLowerCase().includes(texto) ||
-e.dni.includes(texto)
-
-);
-
-renderTabla(resultado);
-
-}
-
-renderTabla();
-
-</script>
-
+<body class="bg-slate-100 font-sans text-slate-800 min-h-screen">
+
+    <div class="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 text-center space-y-4">
+                <h2 class="text-xl font-bold text-slate-900 flex items-center justify-center gap-2">
+                    📷 Lector QR de Asistencia
+                </h2>
+                <p class="text-xs text-slate-500">Apunta al código QR con el DNI del trabajador (requiere HTTPS en móviles).</p>
+                
+                <div id="reader"></div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="encenderCamara()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-2.5 px-4 rounded-xl transition shadow-sm">
+                        Activar Cámara
+                    </button>
+                    <button onclick="apagarCamara()" class="bg-slate-500 hover:bg-slate-600 text-white text-sm font-semibold py-2.5 px-4 rounded-xl transition shadow-sm">
+                        Detener
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200">
+                <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">Marcaciones Recientes</h3>
+                <div class="max-h-60 overflow-y-auto">
+                    <ul id="log-asistencias" class="text-xs space-y-2 list-none">
+                        <li class="text-slate-400 italic">No hay marcaciones registradas todavía.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md border border-slate-200 space-y-4">
+            <div class="flex justify-between items-center flex-wrap gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900">Panel de Trabajadores</h1>
+                    <p class="text-xs text-slate-500">Gestiona altas, bajas y modificaciones de personal.</p>
+                </div>
+                <button onclick="abrirFormulario()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 px-4 rounded-xl shadow transition">
+                    ➕ Nuevo Trabajador
+                </button>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-100">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold text-xs uppercase">
+                            <th class="p-3">DNI</th>
+                            <th class="p-3">Nombres y Apellidos</th>
+                            <th class="p-3">Género</th>
+                            <th class="p-3">Edad</th>
+                            <th class="p-3">Teléfono</th>
+                            <th class="p-3 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-trabajadores" class="divide-y divide-slate-100">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- BASE DE DATOS LOCAL DE 20 TRABAJADORES ---
+        let trabajadores = [
+            {dni:"45871293", nombres:"Carlos Alberto", apellidos:"Mendoza Ruiz", genero:"Masculino", edad:34, telefono:"981234567"},
+            {dni:"71239485", nombres:"Ana Lucía", apellidos:"Quispe Huamán", genero:"Femenino", edad:28, telefono:"955781234"},
+            {dni:"10485762", nombres:"Jorge Luis", apellidos:"Flores Chávez", genero:"Masculino", edad:45, telefono:"941123890"},
+            {dni:"48921357", nombres:"María Fernanda", apellidos:"Gonzales Castro", genero:"Femenino", edad:31, telefono:"962456789"},
+            {dni:"73418925", nombres:"Diego Alonso", apellidos:"Ramírez Sulca", genero:"Masculino", edad:26, telefono:"913789456"},
+            {dni:"09845127", nombres:"Claudia Sofía", apellidos:"Diaz Morales", genero:"Femenino", edad:38, telefono:"974159263"},
+            {dni:"42163859", nombres:"Juan Carlos", apellidos:"Espinoza Palomino", genero:"Masculino", edad:42, telefono:"936852147"},
+            {dni:"75192843", nombres:"Andrea del Pilar", apellidos:"Torres Gutiérrez", genero:"Femenino", edad:29, telefono:"921963852"},
+            {dni:"16734928", nombres:"Luis Fernando", apellidos:"Rojas Vargas", genero:"Masculino", edad:50, telefono:"954741852"},
+            {dni:"44321987", nombres:"Diana Carolina", apellidos:"Castillo Rey", genero:"Femenino", edad:33, telefono:"987321654"},
+            {dni:"70654321", nombres:"Ricardo Javier", apellidos:"Villanueva Paredes", genero:"Masculino", edad:27, telefono:"966987123"},
+            {dni:"25814736", nombres:"Gabriela Beatriz", apellidos:"Ramos Soto", genero:"Femenino", edad:41, telefono:"911456321"},
+            {dni:"47392158", nombres:"Alejandro José", apellidos:"Salazar Delgado", genero:"Masculino", edad:35, telefono:"945159753"},
+            {dni:"72159483", nombres:"Natalia Inés", apellidos:"Benitez Méndez", genero:"Femenino", edad:24, telefono:"993753159"},
+            {dni:"08426179", nombres:"Manuel Antonio", apellidos:"Cruz Cordova", genero:"Masculino", edad:47, telefono:"928654987"},
+            {dni:"46912385", nombres:"Valeria Alejandra", apellidos:"Campos Navarro", genero:"Femenino", edad:32, telefono:"971357159"},
+            {dni:"74381925", nombres:"Christian Omar", apellidos:"Medina Aguilar", genero:"Masculino", edad:30, telefono:"952852963"},
+            {dni:"15934826", nombres:"Paola Rossana", apellidos:"Silva Vega", genero:"Femenino", edad:44, telefono:"934123456"},
+            {dni:"41273958", nombres:"Roberto Carlos", apellidos:"Alva Guerrero", genero:"Masculino", edad:39, telefono:"986456123"},
+            {dni:"76541239", nombres:"Camila Belén", apellidos:"Paredes Ríos", genero:"Femenino", edad:25, telefono:"917789123"}
+        ];
+
+        let html5Qrcode = null;
+
+        // Renderizar la tabla al cargar la página
+        document.addEventListener("DOMContentLoaded", () => {
+            renderTabla();
+        });
+
+        function renderTabla() {
+            const tbody = document.getElementById("tabla-trabajadores");
+            tbody.innerHTML = trabajadores.map((t, index) => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-3 font-mono font-bold text-indigo-600">${t.dni}</td>
+                    <td class="p-3 font-medium text-slate-700">${t.nombres} ${t.apellidos}</td>
+                    <td class="p-3">${t.genero}</td>
+                    <td class="p-3">${t.edad}</td>
+                    <td class="p-3 font-mono">${t.telefono}</td>
+                    <td class="p-3 text-center space-x-1 whitespace-nowrap">
+                        <button onclick="abrirFormulario(${index})" class="bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-semibold py-1 px-2.5 rounded-lg transition">Editar</button>
+                        <button onclick="eliminarTrabajador(${index})" class="bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-semibold py-1 px-2.5 rounded-lg transition">Eliminar</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // --- INTERACTVIDAD DEL FORMULARIO (CRUD CON SWEETALERT2) ---
+        function abrirFormulario(index = null) {
+            const esEdicion = index !== null;
+            const t = esEdicion ? trabajadores[index] : {dni:'', nombres:'', apellidos:'', genero:'Masculino', edad:'', telefono:''};
+
+            Swal.fire({
+                title: esEdicion ? '📝 Editar Trabajador' : '➕ Registrar Trabajador',
+                html: `
+                    <input id="sw-dni" class="swal2-input font-mono" placeholder="DNI (8 dígitos)" value="${t.dni}" ${esEdicion ? 'disabled' : ''}>
+                    <input id="sw-nombres" class="swal2-input" placeholder="Nombres" value="${t.nombres}">
+                    <input id="sw-apellidos" class="swal2-input" placeholder="Apellidos" value="${t.apellidos}">
+                    <select id="sw-genero" class="swal2-input">
+                        <option value="Masculino" ${t.genero === 'Masculino' ? 'selected' : ''}>Masculino</option>
+                        <option value="Femenino" ${t.genero === 'Femenino' ? 'selected' : ''}>Femenino</option>
+                    </select>
+                    <input id="sw-edad" type="number" class="swal2-input" placeholder="Edad" value="${t.edad}">
+                    <input id="sw-telefono" class="swal2-input" placeholder="Teléfono" value="${t.telefono}">
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Guardar',
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => {
+                    const dni = document.getElementById('sw-dni').value.trim();
+                    const nombres = document.getElementById('sw-nombres').value.trim();
+                    const apellidos = document.getElementById('sw-apellidos').value.trim();
+                    const genero = document.getElementById('sw-genero').value;
+                    const edad = document.getElementById('sw-edad').value;
+                    const telefono = document.getElementById('sw-telefono').value.trim();
+
+                    if (!dni || !nombres || !apellidos || !edad || !telefono) {
+                        Swal.showValidationMessage('Por favor completa todos los campos');
+                        return false;
+                    }
+                    return { dni, nombres, apellidos, genero, edad: parseInt(edad), telefono };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (esEdicion) {
+                        trabajadores[index] = result.value;
+                    } else {
+                        if (trabajadores.some(item => item.dni === result.value.dni)) {
+                            Swal.fire('Error', 'Este DNI ya está registrado.', 'error');
+                            return;
+                        }
+                        trabajadores.push(result.value);
+                    }
+                    renderTabla();
+                    Swal.fire('Guardado', 'Los datos se actualizaron correctamente.', 'success');
+                }
+            });
+        }
+
+        function eliminarTrabajador(index) {
+            Swal.fire({
+                title: '¿Eliminar registro?',
+                text: `Esta acción removerá a ${trabajadores[index].nombres} permanentemente.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    trabajadores.splice(index, 1);
+                    renderTabla();
+                    Swal.fire('Eliminado', 'El trabajador fue removido.', 'success');
+                }
+            });
+        }
+
+        // --- ENCIENDE Y GESTIONA LA CÁMARA (QR) ---
+        function encenderCamara() {
+            if (!html5Qrcode) {
+                html5Qrcode = new Html5Qrcode("reader");
+            }
+
+            const config = { 
+                fps: 15, 
+                qrbox: { width: 220, height: 220 } 
+            };
+
+            // Fuerza el uso de la cámara trasera en dispositivos móviles usando 'environment'
+            html5Qrcode.start(
+                { facingMode: "environment" }, 
+                config, 
+                onScanSuccess, 
+                onScanFailure
+            ).catch(err => {
+                console.warn("Fallo cámara trasera, alternando...", err);
+                // Intento secundario si está en laptop/PC de escritorio sin cámara trasera
+                html5Qrcode.start({ facingMode: "user" }, config, onScanSuccess, onScanFailure)
+                .catch(error => {
+                    Swal.fire({
+                        title: 'Permiso Denegado',
+                        text: 'No se puede abrir la cámara. Recuerda activar los permisos en el navegador y que requieres usar HTTPS en móviles.',
+                        icon: 'error'
+                    });
+                });
+            });
+        }
+
+        function onScanSuccess(decodedText) {
+            // Detener temporalmente el lector para evitar escaneos duplicados repetitivos
+            apagarCamara();
+
+            const dniEscaneado = decodedText.trim();
+            const empleado = trabajadores.find(t => t.dni === dniEscaneado);
+
+            if (!empleado) {
+                Swal.fire({
+                    title: 'DNI No Encontrado',
+                    text: `El código QR leído (${dniEscaneado}) no coincide con ningún trabajador.`,
+                    icon: 'error'
+                }).then(() => encenderCamara());
+                return;
+            }
+
+            // Preguntar si es Entrada o Salida con botones interactivos
+            Swal.fire({
+                title: `Hola, ${empleado.nombres}`,
+                text: `¿Deseas registrar Entrada o Salida para el DNI: ${empleado.dni}?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: '✅ Entrada',
+                cancelButtonText: '❌ Salida',
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#f43f5e'
+            }).then((result) => {
+                const tipo = result.isConfirmed ? "Entrada" : "Salida";
+                const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                
+                // Imprimir en la lista de marcaciones en pantalla
+                const log = document.getElementById('log-asistencias');
+                if (log.innerHTML.includes("No hay marcaciones")) log.innerHTML = ""; // Limpiar texto vacío
+                
+                log.innerHTML = `
+                    <li class="bg-slate-50 border border-slate-200 p-2 rounded-lg shadow-sm">
+                        <span class="font-mono font-bold text-slate-500">[${hora}]</span> 
+                        <span class="font-semibold text-slate-700">${empleado.nombres} ${empleado.apellidos}</span> 
+                        <span class="px-1.5 py-0.5 rounded text-[10px] text-white font-bold ml-1 ${result.isConfirmed ? 'bg-emerald-500':'bg-rose-500'}">${tipo}</span>
+                    </li>
+                ` + log.innerHTML;
+
+                Swal.fire('¡Éxito!', `Se registró tu ${tipo} correctamente.`, 'success')
+                    .then(() => encenderCamara()); // Reactivar la cámara para el siguiente turno
+            });
+        }
+
+        function onScanFailure(error) {
+            // El escáner ejecuta esta función en bucle mientras busca un QR. Se deja vacío a propósito.
+        }
+
+        function apagarCamara() {
+            if (html5Qrcode && html5Qrcode.isScanning) {
+                html5Qrcode.stop().then(() => {
+                    document.getElementById('reader').innerHTML = "";
+                    html5Qrcode = null;
+                }).catch(err => console.error("Error al apagar cámara", err));
+            }
+        }
+    </script>
 </body>
 </html>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<script src="https://unpkg.com/html5-qrcode"></script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-<link rel="stylesheet"
-href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
-
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-function guardarDatos(){
-localStorage.setItem(
-"estudiantes",
-JSON.stringify(estudiantes)
-);
-
-localStorage.setItem(
-"asistencias",
-JSON.stringify(asistencias)
-);
-}
-
-function cargarDatos(){
-
-const e = localStorage.getItem("estudiantes");
-const a = localStorage.getItem("asistencias");
-
-if(e) estudiantes = JSON.parse(e);
-if(a) asistencias = JSON.parse(a);
-
-}
-function iniciarScanner(){
-
-const html5QrCode =
-new Html5Qrcode("reader");
-
-html5QrCode.start(
-{ facingMode: "environment" },
-{
-fps:10,
-qrbox:250
-},
-(decodedText)=>{
-
-registrarAsistencia(decodedText);
-
-html5QrCode.stop();
-
-}
-);
-
-}
-function generarQR(estudiante){
-
-Swal.fire({
-title:"QR del estudiante",
-html:`<div id="qr"></div>`,
-didOpen:()=>{
-
-new QRCode(
-document.getElementById("qr"),
-{
-text: estudiante.dni,
-width:200,
-height:200
-}
-);
-
-}
-});
-
-}
-document.addEventListener(
-'DOMContentLoaded',
-function() {
-
-var calendar =
-new FullCalendar.Calendar(
-document.getElementById('calendar'),
-{
-initialView:'dayGridMonth',
-events:eventosAsistencia
-}
-);
-
-calendar.render();
-
-});
-function importarBackup(event){
-
-const archivo =
-event.target.files[0];
-
-const lector =
-new FileReader();
-
-lector.onload = function(e){
-
-const datos =
-JSON.parse(e.target.result);
-
-estudiantes =
-datos.estudiantes || [];
-
-asistencias =
-datos.asistencias || [];
-
-guardarDatos();
-
-renderTabla();
-
-};
-
-lector.readAsText(archivo);
-
-}
-function generarReporte(){
-
-let reporte =
-asistencias.map(a=>`
-
-DNI: ${a.dni}
-Fecha: ${a.fecha}
-
-`).join("");
-
-Swal.fire({
-title:"Reporte",
-html:`<pre>${reporte}</pre>`
-});
-
-}
-function imprimirCarnet(estudiante){
-
-let ventana =
-window.open("","_blank");
-
-ventana.document.write(`
-<h2>${estudiante.nombre}</h2>
-<p>DNI: ${estudiante.dni}</p>
-<div id="qr"></div>
-`);
-
-ventana.print();
-
-}
