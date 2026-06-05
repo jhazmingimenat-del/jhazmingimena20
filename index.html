@@ -3,238 +3,274 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner QR Pro</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-    <style>
-        :root {
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --bg: #f9fafb;
-            --card-bg: #ffffff;
-            --text: #1f2937;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .container {
-            max-width: 500px;
-            width: 100%;
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            box-sizing: border-box;
-        }
-
-        h1, h2 {
-            text-align: center;
-            margin-top: 0;
-        }
-
-        .btn {
-            display: block;
-            width: 100%;
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 14px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-bottom: 15px;
-        }
-
-        .btn:hover {
-            background-color: var(--primary-hover);
-        }
-
-        .btn-stop {
-            background-color: #ef4444;
-        }
-        .btn-stop:hover {
-            background-color: #dc2626;
-        }
-
-        #reader {
-            width: 100%;
-            border-radius: 12px;
-            overflow: hidden;
-            border: none !important; /* Quita el borde por defecto de la librería */
-        }
-
-        .history-section {
-            margin-top: 25px;
-        }
-
-        .history-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .history-item {
-            background: #f3f4f6;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            font-size: 14px;
-            word-break: break-all;
-        }
-
-        .time-stamp {
-            display: block;
-            font-size: 11px;
-            color: #6b7280;
-            margin-top: 4px;
-            font-weight: bold;
-        }
-
-        .empty-state {
-            text-align: center;
-            color: #9ca3af;
-            font-style: italic;
-        }
-    </style>
+    <title>Sistema de Gestión de Personal y Asistencia QR</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
-<body>
+<body class="bg-gray-100 font-sans text-gray-800">
 
-<div class="container">
-    <h1>Escáner QR</h1>
-    
-    <button id="btn-scan" class="btn">Iniciar Cámara</button>
-    <button id="btn-stop" class="btn btn-stop" style="display: none;">Detener Cámara</button>
+    <div class="container mx-auto p-4 max-w-6xl">
+        <header class="bg-blue-600 text-white p-6 rounded-lg shadow-md mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold">Panel de Control de Personal</h1>
+                <p class="text-sm opacity-90">Gestión de trabajadores, asistencia por QR y respaldos</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="abrirModalTrabajador()" class="bg-green-500 hover:bg-green-600 px-4 py-2 rounded font-semibold text-sm transition shadow">
+                    + Nuevo Trabajador
+                </button>
+                <button onclick="exportarBackup()" class="bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded font-semibold text-sm transition shadow">
+                    📦 Exportar Backup (.js)
+                </button>
+            </div>
+        </header>
 
-    <div id="reader"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white p-4 rounded-lg shadow-md flex flex-col items-center justify-center">
+                <h2 class="text-lg font-bold mb-3 text-gray-700">Control de Asistencia QR</h2>
+                <div id="reader" class="w-full max-w-xs border-2 border-dashed border-gray-300 rounded" style="min-height: 250px;"></div>
+                <button onclick="iniciarEscaneo()" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium w-full">
+                    📷 Activar Cámara QR
+                </button>
+            </div>
 
-    <div class="history-section">
-        <h2>Historial de Registros</h2>
-        <ul id="history-list" class="history-list">
-            </ul>
+            <div class="bg-white p-4 rounded-lg shadow-md lg:col-span-2">
+                <h2 class="text-lg font-bold mb-2 text-gray-700">Calendario de Asistencias</h2>
+                <div id="calendar" class="max-h-[400px] text-xs"></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="p-4 border-b border-gray-200 bg-gray-50">
+                <h2 class="text-lg font-bold text-gray-700">Listado de Trabajadores (CRUD)</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-600 uppercase text-xs tracking-wider border-b border-gray-200">
+                            <th class="p-3">ID / QR</th>
+                            <th class="p-3">Nombre Completo</th>
+                            <th class="p-3">Puesto</th>
+                            <th class="p-3">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-trabajadores" class="divide-y divide-gray-200 text-sm">
+                        </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-</div>
 
-<script>
-    const btnScan = document.getElementById('btn-scan');
-    const btnStop = document.getElementById('btn-stop');
-    const historyList = document.getElementById('history-list');
-    
-    // Instancia del escáner apuntando al div #reader
-    const html5QrcodeScanner = new Html5Qrcode("reader");
+    <script>
+        // 1. Datos iniciales precargados (20 Trabajadores)
+        let trabajadores = [
+            { id: "EMP-01", nombre: "Juan Pérez", puesto: "Gerente" },
+            { id: "EMP-02", nombre: "María Gómez", puesto: "Desarrolladora" },
+            { id: "EMP-03", nombre: "Carlos López", puesto: "Diseñador UX" },
+            { id: "EMP-04", nombre: "Ana Rodríguez", puesto: "Soporte Técnico" },
+            { id: "EMP-05", nombre: "Luis Martínez", puesto: "Administrador" },
+            { id: "EMP-06", nombre: "Sofía Hernández", puesto: "Recursos Humanos" },
+            { id: "EMP-07", nombre: "Diego Díaz", puesto: "Contador" },
+            { id: "EMP-08", nombre: "Lucía Álvarez", puesto: "Marketing" },
+            { id: "EMP-09", nombre: "Pedro Ruiz", puesto: "Seguridad" },
+            { id: "EMP-10", nombre: "Elena Torres", puesto: "Sistemas" },
+            { id: "EMP-11", nombre: "Miguel Ángel", puesto: "Logística" },
+            { id: "EMP-12", nombre: "Laura Morales", puesto: "Recepcionista" },
+            { id: "EMP-13", nombre: "Jorge Castro", puesto: "Analista de Datos" },
+            { id: "EMP-14", nombre: "Claudia Ortiz", puesto: "SEO Expert" },
+            { id: "EMP-15", nombre: "Andrés Silva", puesto: "Project Manager" },
+            { id: "EMP-16", nombre: "Patricia Vega", puesto: "QA Engineer" },
+            { id: "EMP-17", nombre: "Ricardo Flores", puesto: "DevOps" },
+            { id: "EMP-18", nombre: "Natalia Benítez", puesto: "Redactora Content" },
+            { id: "EMP-19", nombre: "Gabriel Navarro", puesto: "Legal" },
+            { id: "EMP-20", nombre: "Isabel Méndez", puesto: "Finanzas" }
+        ];
 
-    // Cargar historial inicial al abrir la página
-    document.addEventListener('DOMContentLoaded', displayHistory);
+        let asistencias = [
+            { title: "Juan Pérez (Presente)", start: new Date().toISOString().split('T')[0], color: '#10B981' }
+        ];
 
-    // Evento para iniciar la cámara
-    btnScan.addEventListener('click', () => {
-        btnScan.style.display = 'none';
-        btnStop.style.display = 'block';
+        let calendar;
+        let html5QrcodeScanner;
 
-        // Configuración para forzar la cámara trasera en móviles y definir tamaño del escáner
-        const config = { 
-            fps: 10, 
-            qrbox: { width: 250, height: 250 } 
-        };
-
-        html5QrcodeScanner.start(
-            { facingMode: "environment" }, // Prioriza la cámara trasera
-            config,
-            onScanSuccess,
-            onScanFailure
-        ).catch(err => {
-            alert("Error al acceder a la cámara: " + err);
-            resetButtons();
+        // Inicialización del Sistema
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTrabajadores();
+            inicializarCalendario();
         });
-    });
 
-    // Evento para detener la cámara manualmente
-    btnStop.addEventListener('click', stopCamera);
-
-    function stopCamera() {
-        html5QrcodeScanner.stop().then(() => {
-            resetButtons();
-        }).catch(err => {
-            console.error("Error al detener la cámara: ", err);
-        });
-    }
-
-    function resetButtons() {
-        btnScan.style.display = 'block';
-        btnStop.style.display = 'none';
-    }
-
-    // Qué hacer cuando se reconoce un QR de manera exitosa
-    function onScanSuccess(decodedText, decodedResult) {
-        // Detener la cámara tras una lectura exitosa (opcional, pero recomendado)
-        stopCamera();
-
-        // Obtener fecha y hora actual formateada
-        const now = new Date();
-        const dateTimeStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
-
-        // Guardar en el almacenamiento local (LocalStorage)
-        saveToLocalStorage(decodedText, dateTimeStr);
-
-        // Actualizar la interfaz visual
-        displayHistory();
-
-        // Alerta visual de éxito
-        alert(`¡Código detectado con éxito!\nContenido: ${decodedText}`);
-    }
-
-    // Manejo de errores de escaneo continuos (la librería busca QR constantemente, suele ignorarse)
-    function onScanFailure(error) {
-        // console.warn(`Error de escaneo: ${error}`);
-    }
-
-    // Guardar datos en LocalStorage
-    function saveToLocalStorage(text, datetime) {
-        let history = JSON.parse(localStorage.getItem('qr_history')) || [];
-        // Insertamos al principio para que el más nuevo salga arriba
-        history.unshift({ text: text, datetime: datetime });
-        localStorage.setItem('qr_history', JSON.stringify(history));
-    }
-
-    // Mostrar el historial en pantalla
-    function displayHistory() {
-        historyList.innerHTML = '';
-        let history = JSON.parse(localStorage.getItem('qr_history')) || [];
-
-        if (history.length === 0) {
-            historyList.innerHTML = '<li class="empty-state">No hay códigos registrados aún.</li>';
-            return;
+        // 2. Renderizar Tabla de Trabajadores
+        function renderTrabajadores() {
+            const tbody = document.getElementById('tabla-trabajadores');
+            tbody.innerHTML = '';
+            trabajadores.forEach(t => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="p-3 font-mono font-bold text-blue-600">${t.id}</td>
+                        <td class="p-3 font-medium">${t.nombre}</td>
+                        <td class="p-3 text-gray-600">${t.puesto}</td>
+                        <td class="p-3 flex gap-2">
+                            <button onclick="abrirModalTrabajador('${t.id}')" class="text-blue-500 hover:text-blue-700 font-medium text-xs bg-blue-50 px-2 py-1 rounded">Editar</button>
+                            <button onclick="eliminarTrabajador('${t.id}')" class="text-red-500 hover:text-red-700 font-medium text-xs bg-red-50 px-2 py-1 rounded">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+            });
         }
 
-        history.forEach(item => {
-            const li = document.createElement('li');
-            li.className = 'history-item';
-            
-            // Si el texto parece un enlace, lo hacemos clickeable
-            if (item.text.startsWith('http://') || item.text.startsWith('https://')) {
-                li.innerHTML = `<a href="${item.text}" target="_blank" style="color: var(--primary); font-weight: 500;">${item.text}</a>`;
-            } else {
-                li.textContent = item.text;
+        // 3. Inicializar FullCalendar
+        function inicializarCalendario() {
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'es',
+                events: asistencias,
+                dateClick: function(info) {
+                    gestionarAsistenciaManual(info.dateStr);
+                }
+            });
+            calendar.render();
+        }
+
+        // 4. Formulario Interactivo (Crear / Editar) con SweetAlert2
+        async function abrirModalTrabajador(id = null) {
+            const esEdicion = id !== null;
+            const trabajador = esEdicion ? trabajadores.find(t => t.id === id) : { id: '', nombre: '', puesto: '' };
+
+            const { value: formValues } = await Swal.fire({
+                title: esEdicion ? 'Editar Trabajador' : 'Registrar Nuevo Trabajador',
+                html: `
+                    <input id="swal-id" class="swal2-input !text-sm" placeholder="ID de Empleado (Ej: EMP-21)" value="${trabajador.id}" ${esEdicion ? 'disabled' : ''}>
+                    <input id="swal-nombre" class="swal2-input !text-sm" placeholder="Nombre Completo" value="${trabajador.nombre}">
+                    <input id="swal-puesto" class="swal2-input !text-sm" placeholder="Puesto / Cargo" value="${trabajador.puesto}">
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Guardar',
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => {
+                    const idVal = document.getElementById('swal-id').value.trim();
+                    const nombreVal = document.getElementById('swal-nombre').value.trim();
+                    const puestoVal = document.getElementById('swal-puesto').value.trim();
+                    
+                    if (!idVal || !nombreVal || !puestoVal) {
+                        Swal.showValidationMessage('Todos los campos son obligatorios');
+                        return false;
+                    }
+                    if (!esEdicion && trabajadores.some(t => t.id === idVal)) {
+                        Swal.showValidationMessage('El ID ya se encuentra registrado');
+                        return false;
+                    }
+                    return { id: idVal, nombre: nombreVal, puesto: puestoVal };
+                }
+            });
+
+            if (formValues) {
+                if (esEdicion) {
+                    const idx = trabajadores.findIndex(t => t.id === id);
+                    trabajadores[idx] = { ...trabajadores[idx], nombre: formValues.nombre, puesto: formValues.puesto };
+                    Swal.fire('¡Actualizado!', 'Datos modificados con éxito.', 'success');
+                } else {
+                    trabajadores.push(formValues);
+                    Swal.fire('¡Registrado!', 'Trabajador añadido correctamente.', 'success');
+                }
+                renderTrabajadores();
             }
+        }
 
-            const spanTime = document.createElement('span');
-            spanTime.className = 'time-stamp';
-            spanTime.textContent = `📅 Presenciado el: ${item.datetime}`;
+        // 5. Eliminar Registro
+        function eliminarTrabajador(id) {
+            Swal.fire({
+                title: '¿Estás seguro?',
+                text: `Vas a eliminar al trabajador con ID: ${id}`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#EF4444',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    trabajadores = trabajadores.filter(t => t.id !== id);
+                    renderTrabajadores();
+                    Swal.fire('Eliminado', 'El registro ha sido borrado.', 'success');
+                }
+            });
+        }
+
+        // 6. Registro de Asistencias mediante QR (Cámara del dispositivo)
+        function iniciarEscaneo() {
+            if(html5QrcodeScanner) html5QrcodeScanner.clear();
+
+            html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+            html5QrcodeScanner.render((qrCodeMessage) => {
+                // Se ejecuta al detectar un código QR exitosamente
+                const empleado = trabajadores.find(t => t.id === qrCodeMessage.trim());
+                
+                if (empleado) {
+                    registrarAsistenciaEvento(empleado);
+                    Swal.fire('¡Asistencia Registrada!', `${empleado.nombre} ha marcado entrada.`, 'success');
+                    html5QrcodeScanner.clear(); // Detener cámara tras detectar
+                } else {
+                    Swal.fire('Error de Escaneo', `El código "${qrCodeMessage}" no pertenece a ningún trabajador registrado.`, 'error');
+                }
+            }, (errorMessage) => {
+                // Silenciar errores comunes de búsqueda de QR en el frame
+            });
+        }
+
+        function registrarAsistenciaEvento(empleado, fecha = null) {
+            const targetDate = fecha || new Date().toISOString().split('T')[0];
+            const nuevaAsistencia = {
+                title: `${empleado.nombre} (QR)`,
+                start: targetDate,
+                color: '#10B981'
+            };
+            asistencias.push(nuevaAsistencia);
+            calendar.addEvent(nuevaAsistencia);
+        }
+
+        // 7. Gestión Manual Interactiva de Asistencias (Haciendo click en un día del calendario)
+        async function gestionarAsistenciaManual(fechaSeleccionada) {
+            let opcionesTrabajadores = trabajadores.reduce((acc, t) => {
+                acc[t.id] = t.nombre;
+                return acc;
+            }, {});
+
+            const { value: empleadoId } = await Swal.fire({
+                title: `Asistencia para el ${fechaSeleccionada}`,
+                input: 'select',
+                inputOptions: opcionesTrabajadores,
+                inputPlaceholder: 'Selecciona un trabajador',
+                showCancelButton: true,
+                confirmButtonText: 'Registrar Presente',
+                cancelButtonText: 'Cerrar'
+            });
+
+            if (empleadoId) {
+                const empleado = trabajadores.find(t => t.id === empleadoId);
+                registrarAsistenciaEvento(empleado, fechaSeleccionada);
+                Swal.fire('Registrado', `Asistencia manual añadida para ${empleado.nombre}`, 'success');
+            }
+        }
+
+        // 8. Exportar Archivo JS de Respaldo (Backup)
+        function exportarBackup() {
+            const backupData = `// Backup del Sistema de Personal\nconst backupTrabajadores = ${JSON.stringify(trabajadores, null, 4)};\nconst backupAsistencias = ${JSON.stringify(asistencias, null, 4)};`;
             
-            li.appendChild(spanTime);
-            historyList.appendChild(li);
-        });
-    }
-</script>
-
+            const blob = new Blob([backupData], { type: "application/javascript;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            
+            a.href = url;
+            a.download = `backup_personal_${new Date().toISOString().split('T')[0]}.js`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
 </body>
 </html>
